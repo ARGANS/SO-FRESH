@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
 
-import argparse
+import argcomplete, argparse
+from argcomplete.completers import ChoicesCompleter, FilesCompleter
 import gdal
 import sys, os
 import matplotlib.pyplot as plt
@@ -42,9 +44,10 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Arguments:
         #----------------------------------------------------------------------------------------------------
-        parser.add_argument("-i", "--input-img", required=True, help="Input image to be classified.")
-        parser.add_argument("-o", "--output-img", required=True, help="Output image filepath and name.")
+        parser.add_argument("-i", "--input-img", required=True, help="Input image to be classified.").completer = FilesCompleter(allowednames=(".tif"))
+        parser.add_argument("-o", "--output-img", required=True, help="Output image filepath and name.").completer = FilesCompleter(allowednames=(".tif"))
         parser.add_argument("-t", "--threshold", required=True, type=int, help="The upper threshold value as an interger.")
+        argcomplete.autocomplete(parser)
         args = parser.parse_args()
 
         #----------------------------------------------------------------------------------------------------

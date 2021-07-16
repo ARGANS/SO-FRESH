@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
 
-import argparse
+import argcomplete, argparse
+from argcomplete.completers import ChoicesCompleter, FilesCompleter
 import numpy as np
 import scipy.ndimage as ndimage
 import gdal
@@ -33,8 +35,9 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Arguments:
         #----------------------------------------------------------------------------------------------------
-        parser.add_argument("-i", "--input-img", required=True, help="Input classification image.")
-        parser.add_argument("-o", "--output-img", required=True, help="Output heatmap image.")
+        parser.add_argument("-i", "--input-img", required=True, help="Input classification image.").completer = FilesCompleter(allowednames=(".tif"))
+        parser.add_argument("-o", "--output-img", required=True, help="Output heatmap image.").completer = FilesCompleter(allowednames=(".tif"))
+        argcomplete.autocomplete(parser)
         args = parser.parse_args()
 
         #----------------------------------------------------------------------------------------------------

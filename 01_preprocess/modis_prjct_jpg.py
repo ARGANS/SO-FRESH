@@ -1,6 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
-import argparse
+import argcomplete, argparse
+from argcomplete.completers import ChoicesCompleter, FilesCompleter
 import gdal
 import sys, os
 import matplotlib.pyplot as plt
@@ -11,13 +13,13 @@ import osr
 #--------------------------------------------------------------------------------
 # Script description:
 #--------------------------------------------------------------------------------
+
 parser = argparse.ArgumentParser(description="""
 # Produces a projected tif file from the MODIS TCI images found on: https://e4ftl01.cr.usgs.gov/
 **************************************************************************
 ##Tasks:
 - Extract coordinates from the MODIS sinsusoidal tiles based on the file name.
 - Project array of data using extracted coordinates.
--
 **************************************************************************""",
 formatter_class=argparse.RawDescriptionHelpFormatter)
 
@@ -76,9 +78,10 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Arguments:
         #----------------------------------------------------------------------------------------------------
-        parser.add_argument("-i", "--input-img", required=True, help="The input jpg file. The output will be output to this directory with the same filename with a 'tif' extension.")
-        parser.add_argument("-c", "--coords-csv", required=True, help="MODIS Sinusodial tiles CSV file.")
+        parser.add_argument("-i", "--input-img", required=True, help="The input jpg file. The output will be output to this directory with the same filename with a 'tif' extension.").completer = FilesCompleter(allowednames=(".jpg"))
+        parser.add_argument("-c", "--coords-csv", required=True, help="MODIS Sinusodial tiles CSV file.").completer = FilesCompleter(allowednames=(".csv"))
         parser.add_argument("-e", "--epsg", required=False, default=4326, help="The EPSG to set the image to, default is 4326.")
+        argcomplete.autocomplete(parser)
         args = parser.parse_args()
 
         #----------------------------------------------------------------------------------------------------
