@@ -44,8 +44,7 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Arguments:
         #----------------------------------------------------------------------------------------------------
-        parser.add_argument("-i", "--input-img", required=True, help="Input image to be classified.").completer = FilesCompleter(allowednames=(".tif"))
-        parser.add_argument("-o", "--output-img", required=True, help="Output image filepath and name.").completer = FilesCompleter(allowednames=(".tif"))
+        parser.add_argument("-i", "--input-img", nargs="+", required=True, help="Input image - reprojected jpg file.").completer = FilesCompleter(allowednames=(".tif"))
         parser.add_argument("-t", "--threshold", required=True, type=int, help="The upper threshold value as an interger.")
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
@@ -57,7 +56,9 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
-        threshold_classify(args.input_img, args.output_img, args.threshold)
+        for img in args.input_img:
+            threshold_classify(img, os.path.split(img)[0] + "/03" + os.path.basename(os.path.splitext(img)[0])[2:] + ".threshold." + str(args.threshold) + ".tif", args.threshold)
+
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------

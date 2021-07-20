@@ -27,8 +27,8 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 # Functions:
 #----------------------------------------------------------------------------------------------------
 def modis_extract_geom(input, coords):
-    if os.path.basename(input)[24] == 'h' and os.path.basename(input)[27] == 'v':
-        h, v = os.path.basename(input)[25:-27], os.path.basename(input)[28:-24]
+    if os.path.basename(input)[27] == 'h' and os.path.basename(input)[30] == 'v':
+        h, v = os.path.basename(input)[28:-27], os.path.basename(input)[31:-24]
     else:
         raise RuntimeError("The filename does not match up.")
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Arguments:
         #----------------------------------------------------------------------------------------------------
-        parser.add_argument("-i", "--input-img", required=True, help="The input jpg file. The output will be output to this directory with the same filename with a 'tif' extension.").completer = FilesCompleter(allowednames=(".jpg"))
+        parser.add_argument("-i", "--input-img", required=True, nargs = "+", help="The input jpg file. The output will be output to this directory with the same filename with a 'tif' extension.").completer = FilesCompleter(allowednames=(".jpg"))
         parser.add_argument("-c", "--coords-csv", required=True, help="MODIS Sinusodial tiles CSV file.").completer = FilesCompleter(allowednames=(".csv"))
         parser.add_argument("-e", "--epsg", required=False, default=4326, help="The EPSG to set the image to, default is 4326.")
         argcomplete.autocomplete(parser)
@@ -91,7 +91,8 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
-        modis_jpg2tif(args.input_img, os.path.splitext(args.input_img)[0] + ".tif", args.epsg, modis_extract_geom(args.input_img, args.coords_csv))
+        for img in args.input_img:
+            modis_jpg2tif(img, os.path.split(img)[0] + "/02" + os.path.basename(os.path.splitext(img)[0])[2:] + ".tif", args.epsg, modis_extract_geom(img, args.coords_csv))
 
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
