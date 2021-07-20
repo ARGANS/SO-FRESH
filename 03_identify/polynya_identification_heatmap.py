@@ -86,7 +86,7 @@ if __name__ == "__main__":
             del window_filter, driver, outImg, outBand
 
             # Erode and dialate the heatmap.
-            erosion_dialation(os.path.split(input)[0] + "/04" + os.path.basename(os.path.splitext(input)[0])[2:] + ".heatmap.tif", os.path.split(input)[0] + "/05" + os.path.basename(os.path.splitext(input)[0])[2:] + ".heatmap_eroded.tif")
+            erosion_dialation(os.path.split(input)[0] + "/04" + os.path.basename(os.path.splitext(input)[0])[2:] + ".heatmap.tif", os.path.split(input)[0] + "/05" + os.path.basename(os.path.splitext(input)[0])[2:] + ".heatmap.eroded.tif")
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
