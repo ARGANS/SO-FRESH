@@ -17,9 +17,7 @@ parser = argparse.ArgumentParser(description="""
 # Undertake a basic threshold classification.
 **************************************************************************
 ##Tasks:
--  Threshold classification where the upper limit value is selected.
--
--
+-  Threshold classification where the upper limit value is set.
 **************************************************************************""",
 formatter_class=argparse.RawDescriptionHelpFormatter)
 
@@ -57,7 +55,7 @@ if __name__ == "__main__":
         # Code:
         #----------------------------------------------------------------------------------------------------
         for img in args.input_img:
-            threshold_classify(img, os.path.split(img)[0] + "/03" + os.path.basename(os.path.splitext(img)[0])[2:] + ".threshold." + str(args.threshold) + ".tif", args.threshold)
+            threshold_classify(img, os.path.split(img)[0] + "/03" + os.path.basename(os.path.splitext(img)[0])[2:] + "_threshold_" + str(args.threshold) + ".tif", args.threshold)
 
         #----------------------------------------------------------------------------------------------------
         # Run and errors:

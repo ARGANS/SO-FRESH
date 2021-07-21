@@ -26,7 +26,9 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 #----------------------------------------------------------------------------------------------------
 # Functions:
 #----------------------------------------------------------------------------------------------------
-def cumsum(x):
+def cumval(x):
+    # Cumulative value.
+    # Adds up all values.
     return x.sum()
 
 
@@ -45,7 +47,7 @@ def erosion_dialation(heatmap, eroded_output):
     # Erode, dialate and erode again.
     print("Eroding & dilating...")
     array_mod = morpho.binary_erosion(array_mod, structure=structure, iterations=1, border_value=0)
-    array_mod = morpho.binary_dilation(array_mod, structure=structure, iterations=2*1,border_value=0)
+    array_mod = morpho.binary_dilation(array_mod, structure=structure, iterations=2,border_value=0)
     array_mod = morpho.binary_erosion(array_mod, structure=structure,iterations=1, border_value=0)
     # Select the appropriate data.
     array_mod = np.where(array_mod,1,0)
@@ -75,10 +77,10 @@ if __name__ == "__main__":
         for input in args.input_img:
             # Itterate through the image and calculate the sum of all pixels in the 3x3 box.
             # The 'constant' gives the values which lie on the size of the image a value of 0.
-            window_filter = ndimage.generic_filter(gdal.Open(input).ReadAsArray(), cumsum, size=(3,3), mode='constant')
+            window_filter = ndimage.generic_filter(gdal.Open(input).ReadAsArray(), cumval, size=(3,3), mode='constant')
             #Set output information (stored from input image)
             driver = gdal.GetDriverByName("GTiff")
-            outImg = driver.Create(os.path.split(input)[0] + "/04" + os.path.basename(os.path.splitext(input)[0])[2:] + ".heatmap.tif", gdal.Open(input).RasterYSize, gdal.Open(input).RasterXSize, 1, gdal.GDT_Byte)
+            outImg = driver.Create(os.path.split(input)[0] + "/04" + os.path.basename(os.path.splitext(input)[0])[2:] + "_heatmap.tif", gdal.Open(input).RasterYSize, gdal.Open(input).RasterXSize, 1, gdal.GDT_Byte)
             outBand = outImg.GetRasterBand(1)
             outBand.WriteArray(window_filter)
             outImg.SetGeoTransform(gdal.Open(input).GetGeoTransform())
@@ -86,7 +88,7 @@ if __name__ == "__main__":
             del window_filter, driver, outImg, outBand
 
             # Erode and dialate the heatmap.
-            erosion_dialation(os.path.split(input)[0] + "/04" + os.path.basename(os.path.splitext(input)[0])[2:] + ".heatmap.tif", os.path.split(input)[0] + "/05" + os.path.basename(os.path.splitext(input)[0])[2:] + ".heatmap.eroded.tif")
+            erosion_dialation(os.path.split(input)[0] + "/04" + os.path.basename(os.path.splitext(input)[0])[2:] + "_heatmap.tif", os.path.split(input)[0] + "/05" + os.path.basename(os.path.splitext(input)[0])[2:] + "_heatmap_eroded.tif")
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
