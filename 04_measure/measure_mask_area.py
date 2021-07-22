@@ -4,6 +4,7 @@
 import argcomplete, argparse
 from argcomplete.completers import ChoicesCompleter, FilesCompleter
 import gdal
+import geopandas as gpd
 from osgeo import ogr
 import os, sys
 #--------------------------------------------------------------------------------
@@ -27,22 +28,16 @@ def vectorize(mask):
     return(os.path.split(mask)[0] + "/06" + os.path.basename(os.path.splitext(mask)[0])[2:] + ".shp")
 
 def area_calculator(shapefile):
-    driver = ogr.GetDriverByName("ESRI Shapefile")
-    dataSource = driver.Open(shapefile, 1)
-    layer = dataSource.GetLayer()
-    new_field = ogr.FieldDefn("Area", ogr.OFTInteger)
-    layer.CreateField(new_field)
+    gdf = gpd.read_file(shapefile)
+    gdf = gdf["geometry"].to_crs({"proj":"cea"})
+    area = gdf.area / 10 ** 6
+    area.to_file(shapefile)
+    #return(area)
 
-    for feature in layer:
-        geom = feature.GetGeometryRef()
-        area = geom.GetArea()
-        #### the area this calculates
-        print(area)
-        sys.exit()
-        feature.SetField("Area", area)
-        layer.SetFeature(feature)
+def selector(shapefile):
+    gdf = gpd.read_file(shapefile)
+    return(gdf)
 
-    dataSource = None
 #==========================================================
 # main:
 #----------------------------------------------------------
@@ -63,10 +58,12 @@ if __name__ == "__main__":
         # Code:
         #----------------------------------------------------------------------------------------------------
         for img in args.input_img:
-            #vectorize(img)
-            test = area_calculator(vectorize(img))
-            print(test)
-        #----------------------------------------------------------------------------------------------------
+            vector = vectorize(img)
+            area = area_calculator(vector)
+            #print(area)
+            select = selector(vector)
+            print(select)
+        #--------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
     except RuntimeError as msg:
