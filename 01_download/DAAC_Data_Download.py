@@ -16,6 +16,7 @@ import argparse
 import time
 import os
 import requests
+import sys
 
 # ----------------------------------USER-DEFINED VARIABLES--------------------------------------- #
 # Set up command line arguments
@@ -69,7 +70,6 @@ while tries < 30:
     except:
         time.sleep(2.0)
     tries += 1
-
 # -----------------------------------------DOWNLOAD FILE(S)-------------------------------------- #
 # Loop through and download all files to the directory specified above, and keeping same filenames
 for f in fileList:
@@ -79,9 +79,14 @@ for f in fileList:
     month = f.rsplit('/', 2)[1].rsplit('.',2)[1]
     day = f.rsplit('/', 2)[1].rsplit('.',2)[2]
 
-    if not os.path.exists(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
+    if os.path.exists(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
+        continue
+    else:
         os.makedirs(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
     saveName = os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", f.split('/')[-1].strip())
+    '''if not os.path.exists(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
+        os.makedirs(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
+    saveName = os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", f.split('/')[-1].strip())'''
 
     # Create and submit request and download file
     with requests.get(f.strip(), verify=False, stream=True, auth=(netrc(netrcDir).authenticators(urs)[0], netrc(netrcDir).authenticators(urs)[2])) as response:
@@ -97,4 +102,4 @@ for f in fileList:
                         break
                     d.write(chunk)
             print('Downloaded file: {}'.format(saveName))
-    #time.sleep(1.0)
+    time.sleep(1.0)
