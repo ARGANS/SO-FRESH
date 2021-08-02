@@ -84,9 +84,6 @@ for f in fileList:
     else:
         os.makedirs(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
     saveName = os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", f.split('/')[-1].strip())
-    '''if not os.path.exists(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
-        os.makedirs(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
-    saveName = os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", f.split('/')[-1].strip())'''
 
     # Create and submit request and download file
     with requests.get(f.strip(), verify=False, stream=True, auth=(netrc(netrcDir).authenticators(urs)[0], netrc(netrcDir).authenticators(urs)[2])) as response:
@@ -102,4 +99,4 @@ for f in fileList:
                         break
                     d.write(chunk)
             print('Downloaded file: {}'.format(saveName))
-    time.sleep(1.0)
+    print()
