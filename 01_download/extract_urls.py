@@ -40,8 +40,8 @@ if __name__ == "__main__":
         # Arguments used
         #----------------------------------------------------------------------------------------------------
         #Required arguments
-        parser.add_argument('year',help='Year of imagery required ex. 2002')
-        parser.add_argument('txtOutPath',help='Out put for text file')
+        parser.add_argument('year',help='Year of imagery required i.e. 2002')
+        parser.add_argument('outpath',help='Out put for text file')
         args = parser.parse_args()
 
         #----------------------------------------------------------------------------------------------------
@@ -60,7 +60,7 @@ if __name__ == "__main__":
                 dateFolder.append(link.get('href'))
 
         # text file output name
-        textFileName =os.path.join(args.txtOutPath,'%s_Modis_Img_V%s.txt'%(args.year,version))
+        textFileName =os.path.join(args.outpath,'%s_Modis_Img_V%s.txt'%(args.year,version))
 
         textFile = open(textFileName, 'w')
         #Appened the date to the URL to access every dateFolder
