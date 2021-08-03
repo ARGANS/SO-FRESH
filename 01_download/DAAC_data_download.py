@@ -4,8 +4,7 @@
  The following Python code example demonstrates how to configure a connection to download data from
  an Earthdata Login enabled server, specifically the LP DAAC's Data Pool.
 ---------------------------------------------------------------------------------------------------
- Author: Cole Krehbiel
- Last Updated: 05/14/2020
+ Source: https://git.earthdata.nasa.gov/projects/LPDUR/repos/daac_data_download_python/browse
 ---------------------------------------------------------------------------------------------------
 """
 # Load necessary packages into Python
