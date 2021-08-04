@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import sys
 from tqdm import tqdm
 import os
+from datetime import date, timedelta
 
 #--------------------------------------------------------------------------------
 # Description of script
@@ -23,12 +24,13 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 # Hard commands
 #----------------------------------------------------------------------------------------------------
 # URL of LPDAAC website
-# I have hard coded this in to reduce errors but remember to change the different versions between .061 or .006:
+# I have hard coded this in to reduce errors:
 # https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.061/
 # https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.006/
 
-mainUrl = "https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.006/"
-version = mainUrl[-4:-1]
+urlV006 = "https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.006/"
+urlV061 = "https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.061/"
+
 #==========================================================
 #main
 #----------------------------------------------------------
@@ -40,32 +42,52 @@ if __name__ == "__main__":
         # Arguments used
         #----------------------------------------------------------------------------------------------------
         #Required arguments
-        parser.add_argument('year',help='Year of imagery required i.e. 2002')
-        parser.add_argument('outpath',help='Out put for text file')
+
+        parser.add_argument('-s','--startDate', required=True, help='Start YYYY-MM-DD')
+        parser.add_argument('-e','--endDate', required=True, help='End YYYY-MM-DD')
+        parser.add_argument('-o','--outpath', required=True, help='Out put for text file')
+        parser.add_argument('-v','--version', required=True, help='Select version of modis product [006 or 061]')
         args = parser.parse_args()
 
         #----------------------------------------------------------------------------------------------------
         # scripting
         #----------------------------------------------------------------------------------------------------
+
+        #Empty list for all dates wanted
+        datesSelected = []
+
+        #Turn start date into datetime format
+        startYear = int(args.startDate[0:4])
+        startMonth = int(args.startDate[5:7])
+        startDay = int(args.startDate[8:10])
+        d0 = date(startYear, startMonth, startDay)
+
+        #Turn end date into datetime format
+        endYear = int(args.endDate[0:4])
+        endMonth = int(args.endDate[5:7])
+        endDay = int(args.endDate[8:10])
+        d1 = date(endYear, endMonth, endDay)
+
+        #Find each date in between start and end and append to list
+        delta = d1 - d0
+        for i in range(delta.days + 1):
+            day = d0 + timedelta(days=i)
+            datesSelected.append(str(day).replace('-','.')+'/')
+
         # Read the URL text
-        response = requests.get(mainUrl).text
-
-        #Empty list for dates to be stored
-        dateFolder = []
-
-        #Iterate thorugh first page to get all dates
-        soup = BeautifulSoup(response,"lxml")
-        for link in soup.select("a[href$='/']"):
-            if link.get('href')[0].isdigit() and link.get('href').startswith(args.year):
-                dateFolder.append(link.get('href'))
+        if args.version == '006':
+            response = requests.get(urlV006).text
+            mainUrl = urlV006
+        elif args.version == '061':
+            response = requests.get(urlV061).text
+            mainUrl = urlV061
 
         # text file output name
-        textFileName =os.path.join(args.outpath,'%s_Modis_Img_V%s.txt'%(args.year,version))
+        textFileName =os.path.join(args.outpath,'modis_%s_%s_V%s.txt'%(args.startDate,args.endDate,args.version))
 
         textFile = open(textFileName, 'w')
         #Appened the date to the URL to access every dateFolder
-        print('Year being processed: ',args.year)
-        for date in tqdm(dateFolder):
+        for date in tqdm(datesSelected):
             #print(mainUrl + date)
             datePage = requests.get(mainUrl + date).text
             #print(mainUrl + date)
