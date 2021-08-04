@@ -73,6 +73,7 @@ while tries < 30:
 # Loop through and download all files to the directory specified above, and keeping same filenames
 for f in fileList:
     product = f.rsplit('/', 2)[2].rsplit('.', 8)[1]
+    #version = f.rplsit('/', 2)[2].rsplit('.', 8)[4]
     tile = f.rsplit('/', 2)[2].rsplit('.', 8)[3]
     year = f.rsplit('/', 2)[1].rsplit('.',2)[0]
     month = f.rsplit('/', 2)[1].rsplit('.',2)[1]
