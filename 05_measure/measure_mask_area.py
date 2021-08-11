@@ -65,7 +65,8 @@ def selector(shapefile):
             maxx = gdf.bounds.iloc[i][2]
             maxy = gdf.bounds.iloc[i][3]
             outputlist.append([date, tile, area, filename, minx, miny, maxx, maxy])
-
+    print(outputlist)
+    sys.exit()
     # Here I have written the following outputs to be inputted into a list. This essentially itterates through polygon and extract specific information and saves each one as a new list. (so list in a list).
     # if you do a print(outputlist) it'll be very clear.
     # Things to do:
