@@ -10,6 +10,7 @@ import matplotlib.image as mpimg
 import numpy as np
 import pandas as pd
 import osr
+
 #--------------------------------------------------------------------------------
 # Script description:
 #--------------------------------------------------------------------------------
@@ -79,7 +80,7 @@ if __name__ == "__main__":
         # Arguments:
         #----------------------------------------------------------------------------------------------------
         parser.add_argument("-i", "--input-img", required=True, nargs = "+", help="The input jpg file. The output will be output to this directory with the same filename with a 'tif' extension.").completer = FilesCompleter(allowednames=(".jpg"))
-        parser.add_argument("-c", "--coords-csv", required=True, help="MODIS Sinusodial tiles CSV file.").completer = FilesCompleter(allowednames=(".csv"))
+        #parser.add_argument("-c", "--coords-csv", required=True, help="MODIS Sinusodial tiles CSV file.").completer = FilesCompleter(allowednames=(".csv"))
         parser.add_argument("-e", "--epsg", required=False, default=4326, help="The EPSG to set the image to, default is 4326.")
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
@@ -92,8 +93,7 @@ if __name__ == "__main__":
         # Code:
         #----------------------------------------------------------------------------------------------------
         for img in args.input_img:
-            modis_jpg2tif(img, os.path.split(img)[0] + "/02" + os.path.basename(os.path.splitext(img)[0])[2:] + ".tif", args.epsg, modis_extract_geom(img, args.coords_csv))
-
+            modis_jpg2tif(img, os.path.split(img)[0] + "/02" + os.path.basename(os.path.splitext(img)[0])[2:] + ".tif", args.epsg, modis_extract_geom(img, os.path.split(__file__)[0]+"/modis_sinusoidal_tiles.csv"))
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
