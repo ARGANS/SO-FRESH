@@ -45,8 +45,8 @@ def area_calculator(shapefile):
     # Calculate area and get it in km2.
     gdf['Area'] = cea.area / 10 ** 6
     # Write to shapefile.
-    gdf.to_file(shapefile, driver='GeoJSON')
-
+    if not gdf.empty:
+        gdf.to_file(shapefile, driver='GeoJSON')
 def selector(shapefile):
     # List of files
     files = os.path.split(shapefile)[0].rsplit('/')
@@ -58,20 +58,21 @@ def selector(shapefile):
     gdf = gpd.read_file(shapefile)
     outputlist = []
     # If area is more than X km2, collect file information.
-    if len(gdf['Area'] > 200) >= 1:
-        # This itterates through if there are > 1 polygon that meets the criteria.
-        for i in range(len(gdf.bounds)):
-            # Outputs:
-            date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
-            date.strftime("%Y-%m-%d")
-            tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
-            area = gdf['Area'][i]
-            filename = os.path.basename(shapefile).rsplit('_', 4)[0][3:]
-            minx = gdf.bounds.iloc[i][0]
-            miny = gdf.bounds.iloc[i][1]
-            maxx = gdf.bounds.iloc[i][2]
-            maxy = gdf.bounds.iloc[i][3]
-            outputlist.append([date, tile, area, filename, minx, miny, maxx, maxy])
+    if 'Area' in gdf:
+        if len(gdf['Area'] > 200) >= 1:
+            # This itterates through if there are > 1 polygon that meets the criteria.
+            for i in range(len(gdf.bounds)):
+                # Outputs:
+                date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
+                date.strftime("%Y-%m-%d")
+                tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
+                area = gdf['Area'][i]
+                filename = os.path.basename(shapefile).rsplit('_', 4)[0][3:]
+                minx = gdf.bounds.iloc[i][0]
+                miny = gdf.bounds.iloc[i][1]
+                maxx = gdf.bounds.iloc[i][2]
+                maxy = gdf.bounds.iloc[i][3]
+                outputlist.append([date, tile, area, filename, minx, miny, maxx, maxy])
     return outputlist
     
 def append_data(img, info):
@@ -90,7 +91,6 @@ def append_data(img, info):
                 writer = csv.DictWriter(f, fieldnames=headers)
                 writer.writeheader() 
                 writer.writerow({"Date":i[0], "Tile":i[1], "Area":i[2], "Filename":i[3], "minx":i[4], "miny":i[5], "maxx":i[6], "maxy":i[7]})
-
         elif os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):            
             with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "a") as infile:
                 headers = ["Date", "Tile", "Area", "Filename", "minx", "miny", "maxx", "maxy"]
