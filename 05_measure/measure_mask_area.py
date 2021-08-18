@@ -40,12 +40,15 @@ def vectorize(mask):
 
 def area_calculator(shapefile):
     gdf = gpd.read_file(shapefile)
-    # Take the geometry of the polygons and measure their area, using "cylindrical equal area" as this is what we need to preserve. 
-    cea = gdf["geometry"].to_crs({"proj":"cea"})
-    # Calculate area and get it in km2.
-    gdf['Area'] = cea.area / 10 ** 6
-    # Write to shapefile.
     if not gdf.empty:
+
+        # Take the geometry of the polygons and measure their area, using "cylindrical equal area" as this is what we need to preserve. 
+        cea = gdf["geometry"].to_crs({"proj":"cea"})
+        # Calculate area and get it in km2.
+        gdf['Area'] = cea.area / 10 ** 6
+        gdf.round({'Area':2})
+        # Write to shapefile.
+        #if not gdf.empty:
         gdf.to_file(shapefile, driver='GeoJSON')
 def selector(shapefile):
     # List of files
@@ -65,14 +68,15 @@ def selector(shapefile):
                 # Outputs:
                 date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
                 date.strftime("%Y-%m-%d")
-                tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
+                version = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
+                tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
                 area = gdf['Area'][i]
                 filename = os.path.basename(shapefile).rsplit('_', 4)[0][3:]
                 minx = gdf.bounds.iloc[i][0]
                 miny = gdf.bounds.iloc[i][1]
                 maxx = gdf.bounds.iloc[i][2]
                 maxy = gdf.bounds.iloc[i][3]
-                outputlist.append([date, tile, area, filename, minx, miny, maxx, maxy])
+                outputlist.append([date, version, tile, area, filename, minx, miny, maxx, maxy])
     return outputlist
     
 def append_data(img, info):
@@ -85,17 +89,17 @@ def append_data(img, info):
         else:
             pass
         if not os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
-            headers = ["Date", "Tile", "Area", "Filename", "minx", "miny", "maxx", "maxy"]
+            headers = ["Date", "Version", "Tile", "Area", "Filename", "minx", "miny", "maxx", "maxy"]
             Path(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv").touch()
             with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "w+") as f:
                 writer = csv.DictWriter(f, fieldnames=headers)
                 writer.writeheader() 
-                writer.writerow({"Date":i[0], "Tile":i[1], "Area":i[2], "Filename":i[3], "minx":i[4], "miny":i[5], "maxx":i[6], "maxy":i[7]})
+                writer.writerow({"Date":i[0], "Version":i[1], "Tile": i[2], "Area":i[3], "Filename":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
         elif os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):            
             with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "a") as infile:
-                headers = ["Date", "Tile", "Area", "Filename", "minx", "miny", "maxx", "maxy"]
+                headers = ["Date", "Version", "Tile", "Area", "Filename", "minx", "miny", "maxx", "maxy"]
                 writer = csv.DictWriter(infile, fieldnames=headers)
-                writer.writerow({"Date":i[0], "Tile":i[1], "Area":i[2], "Filename":i[3], "minx":i[4], "miny":i[5], "maxx":i[6], "maxy":i[7]})
+                writer.writerow({"Date":i[0], "Version":i[1], "Tile": i[2], "Area":i[3], "Filename":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
         else:
             pass
 
