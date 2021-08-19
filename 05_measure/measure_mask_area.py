@@ -20,8 +20,8 @@ parser = argparse.ArgumentParser(description="""
 **************************************************************************
 ##Tasks:
 - Vectorize mask and calculate the area of the vectors.
-- If they meet a condition keep their filename / information in a csv.
--
+- If they meet a condition return their filename.
+- For all files which pass save their location, area, name, etc. to a csv.
 **************************************************************************""",
 formatter_class=argparse.RawDescriptionHelpFormatter)
 
@@ -41,14 +41,11 @@ def vectorize(mask):
 def area_calculator(shapefile):
     gdf = gpd.read_file(shapefile)
     if not gdf.empty:
-
         # Take the geometry of the polygons and measure their area, using "cylindrical equal area" as this is what we need to preserve. 
         cea = gdf["geometry"].to_crs({"proj":"cea"})
         # Calculate area and get it in km2.
-        gdf['Area'] = cea.area / 10 ** 6
-        gdf.round({'Area':2})
+        gdf['Area'] = round(cea.area / 10 ** 6, 2)
         # Write to shapefile.
-        #if not gdf.empty:
         gdf.to_file(shapefile, driver='GeoJSON')
 def selector(shapefile):
     # List of files
@@ -84,10 +81,12 @@ def append_data(img, info):
         files = os.path.split(img)[0].rsplit('/')
         product = ''.join(difflib.get_close_matches(os.path.split(img)[1].rsplit('_', 4)[0].rsplit('.', 7)[1], files))
         filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/"
+        # Create output file if it does not exist.
         if not os.path.exists(filepath + "01_csv/"):
             os.mkdir(filepath + "01_csv/")
         else:
             pass
+        # Create a new csv with specified headers and insert a row.
         if not os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
             headers = ["Date", "Version", "Tile", "Area", "Filename", "minx", "miny", "maxx", "maxy"]
             Path(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv").touch()
@@ -95,6 +94,7 @@ def append_data(img, info):
                 writer = csv.DictWriter(f, fieldnames=headers)
                 writer.writeheader() 
                 writer.writerow({"Date":i[0], "Version":i[1], "Tile": i[2], "Area":i[3], "Filename":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+        # If the file exists, insert the following data in a new row. 
         elif os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):            
             with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "a") as infile:
                 headers = ["Date", "Version", "Tile", "Area", "Filename", "minx", "miny", "maxx", "maxy"]
@@ -102,7 +102,6 @@ def append_data(img, info):
                 writer.writerow({"Date":i[0], "Version":i[1], "Tile": i[2], "Area":i[3], "Filename":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
         else:
             pass
-
 
 #==========================================================
 # main:
@@ -115,7 +114,6 @@ if __name__ == "__main__":
         parser.add_argument("-i", "--input-img", nargs="+", required=True, help="Eroded and dilated heatmap image.").completer = FilesCompleter(allowednames=(".tif"))
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
-
         #----------------------------------------------------------------------------------------------------
         # Check for Errors:
         #----------------------------------------------------------------------------------------------------
@@ -130,6 +128,7 @@ if __name__ == "__main__":
             area = area_calculator(vector)
             # Selects those which fit in the criteria (i.e. area <= 200km2).
             select = selector(vector)
+            # For files which pass - save them to the CSV. 
             append = append_data(img, select)        
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
