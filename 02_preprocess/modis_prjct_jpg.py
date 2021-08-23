@@ -44,9 +44,10 @@ def modis_extract_geom(input, coords):
         raise RuntimeError('Please input a 2D or 3D array.')
 
     xmin, ymin, xmax, ymax = float(df_row['lon_min']), float(df_row['lat_min']), float(df_row['lon_max']), float(df_row['lat_max'])
-    xres = (xmax - xmin) / float(nx)
-    yres = (ymax - ymin) / float(ny)
-    return(xmin, xres, 0, ymin, 0, -yres)
+    xres = (xmax - xmin) / nx
+    yres = (ymax - ymin) / ny
+
+    return(xmin, xres, 0, ymax, 0, -yres)
 
 def modis_jpg2tif(input, output, epsg, geom):
     img = gdal.Open(input).ReadAsArray()
@@ -70,6 +71,7 @@ def modis_jpg2tif(input, output, epsg, geom):
         count += 1
         outBand = outDataset.GetRasterBand(count)
         outBand.WriteArray(arr)
+        outBand = None
 
 #==========================================================
 # main:
@@ -81,7 +83,7 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         parser.add_argument("-i", "--input-img", required=True, nargs = "+", help="The input jpg file. The output will be output to this directory with the same filename with a 'tif' extension.").completer = FilesCompleter(allowednames=(".jpg"))
         #parser.add_argument("-c", "--coords-csv", required=True, help="MODIS Sinusodial tiles CSV file.").completer = FilesCompleter(allowednames=(".csv"))
-        parser.add_argument("-e", "--epsg", required=False, default=4326, help="The EPSG to set the image to, default is 4326.")
+        #parser.add_argument("-e", "--epsg", required=False, default=4326, help="The EPSG to set the image to, default is 4326.")
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
 
@@ -93,7 +95,7 @@ if __name__ == "__main__":
         # Code:
         #----------------------------------------------------------------------------------------------------
         for img in args.input_img:
-            modis_jpg2tif(img, os.path.split(img)[0] + "/02" + os.path.basename(os.path.splitext(img)[0])[2:] + ".tif", args.epsg, modis_extract_geom(img, os.path.split(__file__)[0]+"/modis_sinusoidal_tiles.csv"))
+            modis_jpg2tif(img, os.path.split(img)[0] + "/02" + os.path.basename(os.path.splitext(img)[0])[2:] + ".tif", 4326, modis_extract_geom(img, os.path.split(__file__)[0]+"/modis_sinusoidal_tiles.csv"))
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
