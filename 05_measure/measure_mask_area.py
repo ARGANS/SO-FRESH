@@ -89,16 +89,21 @@ def selector(shapefile):
     outputlist = []
     # If area is more than X km2, collect file information.
     if 'Area' and 'Distance(KM)' in gdf:
-        if len(gdf['Area'] > 200) >= 1 and len(gdf["Distance(KM)"] > 200) >= 1:
+        if len(gdf['Area'] > 200) and len(gdf["Distance(KM)"] > 200)) >=1:
+            # TO BE DONE
+            # If the area AND distance >=200 then GREAT!!! Save the deets
+
+
+            #>= 1 and len(gdf["Distance(KM)"] > 200) >= 1:
             # This itterates through if there are > 1 polygon that meets the criteria.
             for i in range(len(gdf.bounds)):
                 # Outputs:
-                date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
+                date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 5)[0].rsplit('.', 7)[3][1:], "%Y%j").date()
                 date.strftime("%Y-%m-%d")
-                version = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
-                tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
+                version = os.path.split(shapefile)[1].rsplit('_', 5)[0].rsplit('.', 7)[5]
+                tile = os.path.split(shapefile)[1].rsplit('_', 5)[0].rsplit('.', 7)[4]
                 area = gdf['Area'][i]
-                filename = os.path.basename(shapefile).rsplit('_', 4)[0][3:]
+                filename = os.path.basename(shapefile).rsplit('_', 5)[0][3:]
                 minx = gdf.bounds.iloc[i][0]
                 miny = gdf.bounds.iloc[i][1]
                 maxx = gdf.bounds.iloc[i][2]
@@ -159,6 +164,7 @@ if __name__ == "__main__":
             area = area_calculator(vector)
             # Create polygon centroids
             centroid = generate_polygon_centroid(vector)
+
             # Calculate distance of polygons in shapefile from land mask.
             distance = distance_calculator(centroid, antartica_mask)
             # Selects those which fit in the criteria (i.e. area <= 200km2).
