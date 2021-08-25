@@ -30,6 +30,10 @@ parser = argparse.ArgumentParser(description="""
 formatter_class=argparse.RawDescriptionHelpFormatter)
 
 #----------------------------------------------------------------------------------------------------
+# Hard arguments:
+#----------------------------------------------------------------------------------------------------
+antartica_mask = gpd.read_file(os.path.split(__file__)[0] + "/antartica_landmask_2deg_buffer.geojson")["geometry"][0]
+#----------------------------------------------------------------------------------------------------
 # Functions:
 #----------------------------------------------------------------------------------------------------
 def vectorize(mask):
@@ -77,7 +81,7 @@ def distance_calculator(point, landmask):
         gdf_pnt.to_file(point, driver='GeoJSON')
 
 
-def selector(shapefile):
+def selector(shapefile, mask):
     # List of files
     files = os.path.split(shapefile)[0].rsplit('/')
     # The product in the file path - where to save the csv to.
@@ -87,28 +91,29 @@ def selector(shapefile):
     # Read shapefile
     gdf = gpd.read_file(shapefile)
     outputlist = []
-    # If area is more than X km2, collect file information.
-    if 'Area' and 'Distance(KM)' in gdf:
-        if len(gdf['Area'] > 200) and len(gdf["Distance(KM)"] > 200)) >=1:
-            # TO BE DONE
-            # If the area AND distance >=200 then GREAT!!! Save the deets
-
-
-            #>= 1 and len(gdf["Distance(KM)"] > 200) >= 1:
-            # This itterates through if there are > 1 polygon that meets the criteria.
-            for i in range(len(gdf.bounds)):
+    # If the polygon intersects with the land mask - ignore.
+    for i, geom_intersect in enumerate(gdf["geometry"].intersects(mask)):
+        if geom_intersect == False:
+            # If area is more than X km2, collect file information.
+            if len(gdf["Area"] > 200) >= 1:
                 # Outputs:
-                date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 5)[0].rsplit('.', 7)[3][1:], "%Y%j").date()
+                date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3][1:], "%Y%j").date()
                 date.strftime("%Y-%m-%d")
-                version = os.path.split(shapefile)[1].rsplit('_', 5)[0].rsplit('.', 7)[5]
-                tile = os.path.split(shapefile)[1].rsplit('_', 5)[0].rsplit('.', 7)[4]
+                version = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[5]
+                tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
                 area = gdf['Area'][i]
-                filename = os.path.basename(shapefile).rsplit('_', 5)[0][3:]
+                filename = os.path.basename(shapefile).rsplit('_', 4)[0][3:]
                 minx = gdf.bounds.iloc[i][0]
                 miny = gdf.bounds.iloc[i][1]
                 maxx = gdf.bounds.iloc[i][2]
                 maxy = gdf.bounds.iloc[i][3]
                 outputlist.append([date, version, tile, area, filename, minx, miny, maxx, maxy])
+                print(date, version, tile, area, filename, minx, miny, maxx, maxy)
+
+            else:
+                pass
+        else:
+            pass
     return outputlist
 
 def append_data(img, info):
@@ -156,22 +161,19 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
-        antartica_mask = gpd.read_file("/mnt/MyDocuments/Projects/SOFRESH/02_Data/03_masks/ATA_adm/ATA_adm0.shp")["geometry"][0]
         for img in args.input_img:
             # Vectorize image.
             vector = vectorize(img)
             # Calculate area of polygons in shapefile.
             area = area_calculator(vector)
-            # Create polygon centroids
-            centroid = generate_polygon_centroid(vector)
-
-            # Calculate distance of polygons in shapefile from land mask.
-            distance = distance_calculator(centroid, antartica_mask)
-            # Selects those which fit in the criteria (i.e. area <= 200km2).
-            select = selector(centroid)
-            print(select)
+            ### Create polygon centroids
+            ###centroid = generate_polygon_centroid(vector)
+            ### Calculate distance of polygons in shapefile from land mask.
+            ###distance = distance_calculator(centroid, antartica_mask)
+            # Selects those which fit in the criteria (i.e. area <= 200km2 and out of the land mask).
+            select = selector(vector, antartica_mask)
             # For files which pass - save them to the CSV.
-            #append = append_data(img, select)
+            append = append_data(img, select)
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
