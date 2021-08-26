@@ -114,6 +114,11 @@ def selector(shapefile, mask):
                 maxx = gdf.bounds.iloc[i][2]
                 maxy = gdf.bounds.iloc[i][3]
                 outputlist.append([date, version, tile, area, filename, minx, miny, maxx, maxy])
+
+                print(minx)
+                bufminx = minx.buffer(1.5)
+                print(bufminx)
+                sys.exit()
                 
             else:
                 pass
