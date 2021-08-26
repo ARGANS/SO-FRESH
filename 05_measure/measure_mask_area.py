@@ -97,10 +97,10 @@ def selector(shapefile, mask):
             # If area is more than X km2, collect file information.
             if len(gdf["Area"] > 200) >= 1:
                 # Outputs:
-                date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3][1:], "%Y%j").date()
+                date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
                 date.strftime("%Y-%m-%d")
-                version = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[5]
-                tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
+                version = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
+                tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
                 area = gdf['Area'][i]
                 filename = os.path.basename(shapefile).rsplit('_', 4)[0][3:]
                 minx = gdf.bounds.iloc[i][0]
@@ -108,8 +108,7 @@ def selector(shapefile, mask):
                 maxx = gdf.bounds.iloc[i][2]
                 maxy = gdf.bounds.iloc[i][3]
                 outputlist.append([date, version, tile, area, filename, minx, miny, maxx, maxy])
-                print(date, version, tile, area, filename, minx, miny, maxx, maxy)
-
+                
             else:
                 pass
         else:
