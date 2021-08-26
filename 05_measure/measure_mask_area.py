@@ -8,13 +8,13 @@ from csv import DictWriter
 from datetime import datetime
 import difflib
 import fiona
-import gdal
+import gdal, ogr
 import geopandas as gpd
 import os, sys
 import pandas as pd
 from pathlib import Path
 import shapely.geometry
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, LineString, mapping
 from shapely.ops import nearest_points
 #--------------------------------------------------------------------------------
 # Script description:
@@ -114,10 +114,17 @@ def selector(shapefile, mask):
                 maxx = gdf.bounds.iloc[i][2]
                 maxy = gdf.bounds.iloc[i][3]
                 outputlist.append([date, version, tile, area, filename, minx, miny, maxx, maxy])
-
-                print(minx)
-                bufminx = minx.buffer(1.5)
-                print(bufminx)
+                
+                #geometry_gpd = gpd.GeoSeries(Polygon([(maxx, miny), (minx, miny), (maxx, maxy), (minx,maxy)]))
+                geometry_gpd = gpd.GeoSeries(Polygon([(maxx, maxy), (minx, miny), (maxx, miny), (minx, maxy), (maxx, maxy)]))
+                #lat_list = [
+                #print(geometry_gpd)
+                s = geometry_gpd.buffer(1.5)
+                print(s)
+                sys.exit()
+                crs = {'init': 'epsg:4326'}
+                #polygon = gpd.GeoDataFrame(index=[0], crs=crs, geometry=[geometry_gpd])
+                s.to_file(filename='polygon.geojson', driver='GeoJSON')
                 sys.exit()
                 
             else:
