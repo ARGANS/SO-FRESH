@@ -24,8 +24,8 @@ parser = argparse.ArgumentParser(description="""
 **************************************************************************
 ##Tasks:
 - Vectorize mask and calculate the area of the vectors.
-- If they meet a condition return their filename.
-- For all files which pass save their location, area, name, etc. to a csv.
+- If they meet specific condition (specific area (km2) and are >200km from land) return information including:date, version, tile, total area, full filename and bounding box values.
+- For all files which pass save the information to a csv.
 **************************************************************************""",
 formatter_class=argparse.RawDescriptionHelpFormatter)
 
@@ -56,7 +56,9 @@ def area_calculator(polygon):
         # Write to shapefile.
         gdf.to_file(polygon, driver='GeoJSON')
 
+# This function is not currently in use. 
 def generate_polygon_centroid(polygon):
+    # Generate a point vector for every polygon present. 
     gdf = gpd.read_file(polygon)
     if not gdf.empty:
         gdf.geometry = gdf.representative_point()
@@ -64,17 +66,21 @@ def generate_polygon_centroid(polygon):
 
     return(os.path.split(polygon)[0] + "/07" + os.path.basename(os.path.splitext(polygon)[0])[2:] + "_centroid.geojson")
 
+# This function is not currently in use. 
 def distance_calculator(point, landmask):
+    # Calculate the distance between a point vector and the nearest point of a specified polygon. This will print the distance in "km".
     gdf_pnt = gpd.read_file(point)
     if not gdf_pnt.empty:
         polygon_lst = []
         centroid_lst = []
         for point_geom in gdf_pnt["geometry"]:
+            # This returns the lat lon of the point vector and polygon point which is nearest. 
             polygon, centroid = nearest_points(landmask, point_geom)
             polygon_lst.append(polygon)
             centroid_lst.append(centroid)
         distance_lst = []
         for poly, pnt in zip(polygon_lst, centroid_lst):
+            # As the projection for the data is in EPSG:4326 WGS 84 (global projection), the distance is in degrees, where 1 degree == 111 km. 
             distance = round(poly.distance(pnt)*111, 2)
             distance_lst.append(distance)
         gdf_pnt["Distance(KM)"] = distance_lst
@@ -171,7 +177,8 @@ if __name__ == "__main__":
             ###distance = distance_calculator(centroid, antartica_mask)
             # Selects those which fit in the criteria (i.e. area <= 200km2 and out of the land mask).
             select = selector(vector, antartica_mask)
-            # For files which pass - save them to the CSV.
+            # For files which pass - save them to the csv.
+            # Check if the csv exists prior and whether it contains information with similar dates - as this function applies them to the csv as new rows. 
             append = append_data(img, select)
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
