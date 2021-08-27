@@ -98,12 +98,15 @@ def selector(shapefile, mask):
     # Read shapefile
     gdf = gpd.read_file(shapefile)
     outputlist = []
+    bbox_geom_lst = []
     # If the polygon intersects with the land mask - ignore.
     for i, geom_intersect in enumerate(gdf["geometry"].intersects(mask)):
         if geom_intersect == False:
             # If area is more than X km2, collect file information.
             if len(gdf["Area"] > 200) >= 1:
                 # Outputs:
+                '''
+                # Working code!!
                 date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
                 date.strftime("%Y-%m-%d")
                 version = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
@@ -120,22 +123,55 @@ def selector(shapefile, mask):
                 s = geometry_gpd.buffer(1.5, join_style=2)
                 s.to_file(filename='polygon.geojson', driver='GeoJSON')
                 sys.exit()
-                #fix, axs = plt.subplots(3, 2, figsize=(12, 12), sharex=True, sharey=True)
-                #for ax in axs.flatten():
-                #    geometry_gpd.plot(ax=ax)
-                #    ax.set(xticks=[], yticks=[])
-                #s.plot(ax=axs[1, 0], alpha=0.6)
-                #axs[1, 0].set_title("s.buffer(0.2, cap_style=2)")
-                #plt.show()
-                sys.exit()
-                
+                '''
+                minx = gdf.bounds.iloc[i][0]
+                miny = gdf.bounds.iloc[i][1]
+                maxx = gdf.bounds.iloc[i][2]
+                maxy = gdf.bounds.iloc[i][3]
+                bbox_geom_lst.append([minx, miny, maxx, maxy])
             else:
                 pass
         else:
             pass
+    
+    overlapping_bbox_lst = []
+    for bbox_geom_v1 in bbox_geom_lst:
+        # Loop 1 of polygons which passed the first criteria.
+        geom_gdf_v1 = gpd.GeoSeries(Polygon([(bbox_geom_v1[0], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[3]), (bbox_geom_v1[0],bbox_geom_v1[3])]))
+        # Create a buffer of the co-ordinates.
+        geom_buffer = geom_gdf_v1.buffer(1.5, join_style=2)
+        for bbox_geom_v2 in bbox_geom_lst:
+            # Loop 2 of polygons which passed the first criteria.
+            geom_gdf_v2 = gpd.GeoSeries(Polygon([(bbox_geom_v2[0], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[3]), (bbox_geom_v2[0],bbox_geom_v2[3])]))
+            # Check if the lists are matching - if they're the same, pass (do not want to look at the same polygon!). 
+            if not bbox_geom_v2 == bbox_geom_v1:
+                for intersection_test in geom_gdf_v2.intersects(geom_buffer):
+                    overlapping_bbox_lst.append(bbox_geom_v1)
+            else:
+                pass
+    # Order: minx, miny, maxx, maxy
+    
+    if len(overlapping_bbox_lst) >= 1:
+        full_bbox = [(min(list(list(zip(*overlapping_bbox_lst))[0]))), (min(list(list(zip(*overlapping_bbox_lst))[1]))), (max(list(list(zip(*overlapping_bbox_lst))[2]))), (max(list(list(zip(*overlapping_bbox_lst))[3])))]
+        # The next two lines give the functionality for the bounding box to be saved as geojson. 
+        #full_bbox_gdf = gpd.GeoSeries(Polygon([(full_bbox[0], full_bbox[1]), (full_bbox[2], full_bbox[1]), (full_bbox[2], full_bbox[3]), (full_bbox[0],full_bbox[3])]))
+        #full_bbox_gdf.to_file(filename='polygon.geojson', driver='GeoJSON')
+        date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
+        date.strftime("%Y-%m-%d")
+        version = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
+        tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
+        filename = os.path.basename(shapefile).rsplit('_', 4)[0][3:]
+        quantity_poly = len(overlapping_bbox_lst)
+        outputlist.append([date, version, tile, filename, quantity_poly, full_bbox[0], full_bbox[1], full_bbox[2], full_bbox[3]])
+
+    else:
+        pass
+    
     return outputlist
 
 def append_data(img, info):
+    # If wanting to search for solo polygons.
+    '''
     for i in info:
         files = os.path.split(img)[0].rsplit('/')
         product = ''.join(difflib.get_close_matches(os.path.split(img)[1].rsplit('_', 4)[0].rsplit('.', 7)[1], files))
@@ -147,20 +183,49 @@ def append_data(img, info):
             pass
         # Create a new csv with specified headers and insert a row.
         if not os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
-            headers = ["Date", "Version", "Tile", "Area", "Filename", "minx", "miny", "maxx", "maxy"]
+            headers = ["Date", "Version", "Tile", "Filename", "minx", "miny", "maxx", "maxy"]
             Path(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv").touch()
             with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "w+") as f:
                 writer = csv.DictWriter(f, fieldnames=headers)
                 writer.writeheader()
-                writer.writerow({"Date":i[0], "Version":i[1], "Tile": i[2], "Area":i[3], "Filename":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+                writer.writerow({"Date":i[0], "Version":i[1], "Tile": i[2], "Area": i[3], "Filename":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
         # If the file exists, insert the following data in a new row.
         elif os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
             with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "a") as infile:
-                headers = ["Date", "Version", "Tile", "Area", "Filename", "minx", "miny", "maxx", "maxy"]
+                headers = ["Date", "Version", "Tile", "Filename", "minx", "miny", "maxx", "maxy"]
                 writer = csv.DictWriter(infile, fieldnames=headers)
-                writer.writerow({"Date":i[0], "Version":i[1], "Tile": i[2], "Area":i[3], "Filename":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+                writer.writerow({"Date":i[0], "Version":i[1], "Tile": i[2], "Area": i[3], "Filename":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
         else:
             pass
+    '''
+    for i in info:
+        # If wanting to search for polygons that are nearby to eachother (within buffer distance).
+        files = os.path.split(img)[0].rsplit('/')
+        product = ''.join(difflib.get_close_matches(os.path.split(img)[1].rsplit('_', 4)[0].rsplit('.', 7)[1], files))
+        filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/"
+        # Create output file if it does not exist.
+        if not os.path.exists(filepath + "01_csv/"):
+            os.mkdir(filepath + "01_csv/")
+        else:
+            pass
+        # Create a new csv with specified headers and insert a row.
+        if not os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
+            headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy"]
+            Path(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv").touch()
+            with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "w+") as f:
+                writer = csv.DictWriter(f, fieldnames=headers)
+                writer.writeheader()
+                writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+        # If the file exists, insert the following data in a new row.
+        elif os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
+            with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "a") as infile:
+                headers = ["Date", "Version", "Tile", "Filename", "minx", "miny", "maxx", "maxy"]
+                writer = csv.DictWriter(infile, fieldnames=headers)
+                writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+ 
+        else:
+            pass
+
 
 #==========================================================
 # main:
