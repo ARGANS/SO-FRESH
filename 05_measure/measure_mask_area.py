@@ -16,6 +16,7 @@ from pathlib import Path
 import shapely.geometry
 from shapely.geometry import Point, Polygon, LineString, mapping
 from shapely.ops import nearest_points
+import matplotlib.pyplot as plt
 #--------------------------------------------------------------------------------
 # Script description:
 #--------------------------------------------------------------------------------
@@ -114,17 +115,18 @@ def selector(shapefile, mask):
                 maxx = gdf.bounds.iloc[i][2]
                 maxy = gdf.bounds.iloc[i][3]
                 outputlist.append([date, version, tile, area, filename, minx, miny, maxx, maxy])
-                
-                #geometry_gpd = gpd.GeoSeries(Polygon([(maxx, miny), (minx, miny), (maxx, maxy), (minx,maxy)]))
-                geometry_gpd = gpd.GeoSeries(Polygon([(maxx, maxy), (minx, miny), (maxx, miny), (minx, maxy), (maxx, maxy)]))
-                #lat_list = [
-                #print(geometry_gpd)
-                s = geometry_gpd.buffer(1.5)
-                print(s)
-                sys.exit()
-                crs = {'init': 'epsg:4326'}
-                #polygon = gpd.GeoDataFrame(index=[0], crs=crs, geometry=[geometry_gpd])
+                # Buffer the bounding box by 1.5 (this increases the lat lon by 1.5)
+                geometry_gpd = gpd.GeoSeries(Polygon([(minx, miny), (maxx, miny), (maxx, maxy), (minx,maxy)]))
+                s = geometry_gpd.buffer(1.5, join_style=2)
                 s.to_file(filename='polygon.geojson', driver='GeoJSON')
+                sys.exit()
+                #fix, axs = plt.subplots(3, 2, figsize=(12, 12), sharex=True, sharey=True)
+                #for ax in axs.flatten():
+                #    geometry_gpd.plot(ax=ax)
+                #    ax.set(xticks=[], yticks=[])
+                #s.plot(ax=axs[1, 0], alpha=0.6)
+                #axs[1, 0].set_title("s.buffer(0.2, cap_style=2)")
+                #plt.show()
                 sys.exit()
                 
             else:
