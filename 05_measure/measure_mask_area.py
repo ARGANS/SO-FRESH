@@ -198,34 +198,36 @@ def append_data(img, info):
         else:
             pass
     '''
-    for i in info:
-        # If wanting to search for polygons that are nearby to eachother (within buffer distance).
-        files = os.path.split(img)[0].rsplit('/')
-        product = ''.join(difflib.get_close_matches(os.path.split(img)[1].rsplit('_', 4)[0].rsplit('.', 7)[1], files))
-        filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/"
-        # Create output file if it does not exist.
-        if not os.path.exists(filepath + "01_csv/"):
-            os.mkdir(filepath + "01_csv/")
-        else:
-            pass
-        # Create a new csv with specified headers and insert a row.
-        if not os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
-            headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy"]
-            Path(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv").touch()
-            with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "w+") as f:
-                writer = csv.DictWriter(f, fieldnames=headers)
-                writer.writeheader()
-                writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
-        # If the file exists, insert the following data in a new row.
-        elif os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
-            with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "a") as infile:
-                headers = ["Date", "Version", "Tile", "Filename", "minx", "miny", "maxx", "maxy"]
-                writer = csv.DictWriter(infile, fieldnames=headers)
-                writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+    if not len(info) == 0:
+        for i in info:
+            # If wanting to search for polygons that are nearby to eachother (within buffer distance).
+            files = os.path.split(img)[0].rsplit('/')
+            product = ''.join(difflib.get_close_matches(os.path.split(img)[1].rsplit('_', 4)[0].rsplit('.', 7)[1], files))
+            filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/"
+            # Create output file if it does not exist.
+            if not os.path.exists(filepath + "01_csv/"):
+                os.mkdir(filepath + "01_csv/")
+            else:
+                pass
+            # Create a new csv with specified headers and insert a row.
+            if not os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
+                headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy"]
+                Path(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv").touch()
+                with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "w+") as f:
+                    writer = csv.DictWriter(f, fieldnames=headers)
+                    writer.writeheader()
+                    writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+            # If the file exists, insert the following data in a new row.
+            elif os.path.exists(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
+                with open(str(filepath + "01_csv/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "a") as infile:
+                    headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy"]
+                    writer = csv.DictWriter(infile, fieldnames=headers)
+                    writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
  
-        else:
-            pass
-
+            else:
+                pass
+    else:
+        pass
 
 #==========================================================
 # main:
