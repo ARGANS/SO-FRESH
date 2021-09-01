@@ -33,7 +33,7 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 #----------------------------------------------------------------------------------------------------
 # Hard arguments:
 #----------------------------------------------------------------------------------------------------
-antartica_mask = gpd.read_file(os.path.split(__file__)[0] + "/antartica_landmask_2deg_buffer.geojson")["geometry"][0]
+antarctica_mask = gpd.read_file(os.path.split(__file__)[0] + "/antartica_landmask_2deg_buffer.geojson")["geometry"][0]
 #----------------------------------------------------------------------------------------------------
 # Functions:
 #----------------------------------------------------------------------------------------------------
@@ -57,9 +57,9 @@ def area_calculator(polygon):
         # Write to shapefile.
         gdf.to_file(polygon, driver='GeoJSON')
 
-# This function is not currently in use. 
+# This function is not currently in use.
 def generate_polygon_centroid(polygon):
-    # Generate a point vector for every polygon present. 
+    # Generate a point vector for every polygon present.
     gdf = gpd.read_file(polygon)
     if not gdf.empty:
         gdf.geometry = gdf.representative_point()
@@ -67,7 +67,7 @@ def generate_polygon_centroid(polygon):
 
     return(os.path.split(polygon)[0] + "/07" + os.path.basename(os.path.splitext(polygon)[0])[2:] + "_centroid.geojson")
 
-# This function is not currently in use. 
+# This function is not currently in use.
 def distance_calculator(point, landmask):
     # Calculate the distance between a point vector and the nearest point of a specified polygon. This will print the distance in "km".
     gdf_pnt = gpd.read_file(point)
@@ -75,17 +75,55 @@ def distance_calculator(point, landmask):
         polygon_lst = []
         centroid_lst = []
         for point_geom in gdf_pnt["geometry"]:
-            # This returns the lat lon of the point vector and polygon point which is nearest. 
+            # This returns the lat lon of the point vector and polygon point which is nearest.
             polygon, centroid = nearest_points(landmask, point_geom)
             polygon_lst.append(polygon)
             centroid_lst.append(centroid)
         distance_lst = []
         for poly, pnt in zip(polygon_lst, centroid_lst):
-            # As the projection for the data is in EPSG:4326 WGS 84 (global projection), the distance is in degrees, where 1 degree == 111 km. 
+            # As the projection for the data is in EPSG:4326 WGS 84 (global projection), the distance is in degrees, where 1 degree == 111 km.
             distance = round(poly.distance(pnt)*111, 2)
             distance_lst.append(distance)
         gdf_pnt["Distance(KM)"] = distance_lst
         gdf_pnt.to_file(point, driver='GeoJSON')
+
+
+def area_distance_criteria(shapefile, mask):
+    # Check to see whether the polygons reach the initial criteria (area and distance from land).
+    # Read shapefile
+    gdf = gpd.read_file(shapefile)
+    shp_list = []
+    gdf_list = []
+    # If the polygon intersects with the land mask - pass
+    for i, geom_intersect in enumerate(gdf["geometry"].intersects(mask)):
+        if geom_intersect == False:
+            # If area is more than X km2, collect file information.
+            if len(gdf["Area"] > 200) >= 1:
+                if shapefile not in shp_list: # Avoids appending multiple of the same filename. 
+                    shp_list.append(shapefile)
+                    gdf_list.append(gdf)
+            elif len(gdf["Area"] < 200) >=1: # if the area is below 200 km2 - remove polygon
+                gdf = gdf.drop(labels=i, axis=0)
+            else:
+                pass
+        
+        elif geom_intersect == True:
+            gdf = gdf.drop(labels=i, axis=0) # If there is an intersection - remove polygon
+        else:
+            pass
+        
+    return(shp_list, gdf_list)
+
+def bbox_overlap(shapefile, geodataframe):
+    bbox_geom_lst = []
+    for i, val in enumerate(geodataframe["geometry"]):
+        minx = geodataframe.bounds.iloc[i][0]
+        miny = geodataframe.bounds.iloc[i][1]
+        maxx = geodataframe.bounds.iloc[i][2]
+        maxy = geodataframe.bounds.iloc[i][3]
+        bbox_geom_lst.append([minx, miny, maxx, maxy]) 
+    
+    return(bbox_geom_lst)
 
 
 def selector(shapefile, mask):
@@ -149,8 +187,8 @@ def selector(shapefile, mask):
                     overlapping_bbox_lst.append(bbox_geom_v1)
             else:
                 pass
-    # Order: minx, miny, maxx, maxy
     
+    # Order: minx, miny, maxx, maxy
     if len(overlapping_bbox_lst) >= 1:
         full_bbox = [(min(list(list(zip(*overlapping_bbox_lst))[0]))), (min(list(list(zip(*overlapping_bbox_lst))[1]))), (max(list(list(zip(*overlapping_bbox_lst))[2]))), (max(list(list(zip(*overlapping_bbox_lst))[3])))]
         # The next two lines give the functionality for the bounding box to be saved as geojson. 
@@ -247,6 +285,8 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
+        shp_in_criteria = []
+        poly_geom_in_criteria = []
         for img in args.input_img:
             # Vectorize image.
             vector = vectorize(img)
@@ -256,11 +296,35 @@ if __name__ == "__main__":
             ###centroid = generate_polygon_centroid(vector)
             ### Calculate distance of polygons in shapefile from land mask.
             ###distance = distance_calculator(centroid, antartica_mask)
+            init_criteria = area_distance_criteria(vector, antarctica_mask)
+            # Append the shapefiles which meet the criteria to a list.
+            if init_criteria[0] not in shp_in_criteria:
+                # Check if list if empty - skips if it is empty.
+                if init_criteria[0]:
+                    shp_in_criteria.append(init_criteria[0]) # Ensures duplicates are removed (as multi-polygons often happen).
+                else:
+                    pass
+            else:
+                pass
+            # Makes sure list is not empty.
+            if init_criteria[1]:
+                poly_geom_in_criteria.append(init_criteria[1])
+
+            '''
             # Selects those which fit in the criteria (i.e. area <= 200km2 and out of the land mask).
             select = selector(vector, antartica_mask)
             # For files which pass - save them to the csv.
             # Check if the csv exists prior and whether it contains information with similar dates - as this function applies them to the csv as new rows. 
             append = append_data(img, select)
+            '''
+        if not len(shp_in_criteria) == len(poly_geom_in_criteria):
+            raise RuntimeError("The total number of shapefiles and total number of GeoDataFrames do not match")
+
+        for shp, geom in zip(shp_in_criteria, poly_geom_in_criteria):
+            bbox = bbox_overlap(shp[0], geom[0])
+        print(bbox)
+        print(len(bbox))
+        sys.exit()
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
