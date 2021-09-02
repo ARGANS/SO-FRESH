@@ -114,7 +114,8 @@ def area_distance_criteria(shapefile, mask):
         
     return(shp_list, gdf_list)
 
-def bbox_overlap(shapefile, geodataframe):
+def bbox_extract(geodataframe):
+    # Extract the bounding boxes of all polygons that have passed the initial criteria. 
     bbox_geom_lst = []
     for i, val in enumerate(geodataframe["geometry"]):
         minx = geodataframe.bounds.iloc[i][0]
@@ -171,8 +172,9 @@ def selector(shapefile, mask):
                 pass
         else:
             pass
-    
+
     overlapping_bbox_lst = []
+    not_overlapping_bbox_lst = []
     for bbox_geom_v1 in bbox_geom_lst:
         # Loop 1 of polygons which passed the first criteria.
         geom_gdf_v1 = gpd.GeoSeries(Polygon([(bbox_geom_v1[0], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[3]), (bbox_geom_v1[0],bbox_geom_v1[3])]))
@@ -187,6 +189,10 @@ def selector(shapefile, mask):
                     overlapping_bbox_lst.append(bbox_geom_v1)
             else:
                 pass
+    print(overlapping_bbox_lst)
+    print(len(overlapping_bbox_lst))
+    print(not_overlapping_bbox_lst)
+    print(len(not_overlapping_bbox_lst))
     
     # Order: minx, miny, maxx, maxy
     if len(overlapping_bbox_lst) >= 1:
@@ -296,6 +302,9 @@ if __name__ == "__main__":
             ###centroid = generate_polygon_centroid(vector)
             ### Calculate distance of polygons in shapefile from land mask.
             ###distance = distance_calculator(centroid, antartica_mask)
+            
+            """
+            # PRIOR TESTING
             init_criteria = area_distance_criteria(vector, antarctica_mask)
             # Append the shapefiles which meet the criteria to a list.
             if init_criteria[0] not in shp_in_criteria:
@@ -309,22 +318,53 @@ if __name__ == "__main__":
             # Makes sure list is not empty.
             if init_criteria[1]:
                 poly_geom_in_criteria.append(init_criteria[1])
+            """
 
-            '''
+            
             # Selects those which fit in the criteria (i.e. area <= 200km2 and out of the land mask).
-            select = selector(vector, antartica_mask)
+            select = selector(vector, antarctica_mask)
             # For files which pass - save them to the csv.
             # Check if the csv exists prior and whether it contains information with similar dates - as this function applies them to the csv as new rows. 
-            append = append_data(img, select)
-            '''
+            #append = append_data(img, select)
+            
+        
+
+
+
+
+        """
+        # Work in progress... if other method doesn't work
         if not len(shp_in_criteria) == len(poly_geom_in_criteria):
             raise RuntimeError("The total number of shapefiles and total number of GeoDataFrames do not match")
 
-        for shp, geom in zip(shp_in_criteria, poly_geom_in_criteria):
-            bbox = bbox_overlap(shp[0], geom[0])
-        print(bbox)
-        print(len(bbox))
+        bbox_list = []
+        for geom in poly_geom_in_criteria:
+            bbox = bbox_extract(geom[0])
+            bbox_list.append(bbox)
+
+        if not len(shp_in_criteria) == len(bbox_list):
+            raise RuntimeError("The total number of shapefiles and total number of bounding boxes do not match")
+
+        overlapping_bbox_lst = []
+        for shp, bbox in zip(shp_in_criteria, bbox_list):
+            for bbox_geom_v1 in bbox:
+                # Loop 1 of polygons which passed the first criteria.
+                geom_gdf_v1 = gpd.GeoSeries(Polygon([(bbox_geom_v1[0], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[3]), (bbox_geom_v1[0],bbox_geom_v1[3])]))
+                # Create a buffer of the co-ordinates.
+                geom_buffer = geom_gdf_v1.buffer(1.5, join_style=2)
+                for bbox_geom_v2 in bbox:
+                    # Loop 2 of polygons which passed the first criteria.
+                    geom_gdf_v2 = gpd.GeoSeries(Polygon([(bbox_geom_v2[0], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[3]), (bbox_geom_v2[0],bbox_geom_v2[3])]))
+                    # Check if the lists are matching - if they're the same, pass (do not want to look at the same polygon!). 
+                    if not bbox_geom_v2 == bbox_geom_v1:
+                        for intersection_test in geom_gdf_v2.intersects(geom_buffer):
+                            overlapping_bbox_lst.append(bbox_geom_v1)
+                    else:
+                        pass
+
+        print(overlapping_bbox_lst[0])
         sys.exit()
+        """
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
