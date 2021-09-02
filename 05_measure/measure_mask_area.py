@@ -67,6 +67,8 @@ def generate_polygon_centroid(polygon):
 
     return(os.path.split(polygon)[0] + "/07" + os.path.basename(os.path.splitext(polygon)[0])[2:] + "_centroid.geojson")
 
+
+
 # This function is not currently in use.
 def distance_calculator(point, landmask):
     # Calculate the distance between a point vector and the nearest point of a specified polygon. This will print the distance in "km".
@@ -175,31 +177,41 @@ def selector(shapefile, mask):
 
     overlapping_bbox_lst = []
     not_overlapping_bbox_lst = []
-    for bbox_geom_v1 in bbox_geom_lst:
+    
+    for i, bbox_geom_v1 in enumerate(bbox_geom_lst):
         # Loop 1 of polygons which passed the first criteria.
         geom_gdf_v1 = gpd.GeoSeries(Polygon([(bbox_geom_v1[0], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[3]), (bbox_geom_v1[0],bbox_geom_v1[3])]))
         # Create a buffer of the co-ordinates.
-        geom_buffer = geom_gdf_v1.buffer(1.5, join_style=2)
+        geom_buffer = geom_gdf_v1.buffer(0.75, join_style=2)
+        i = str(i)
+        geom_buffer.to_file(filename=os.path.join('buffer_poly'+ i +'.geojson'), driver='GeoJSON')
         for bbox_geom_v2 in bbox_geom_lst:
             # Loop 2 of polygons which passed the first criteria.
             geom_gdf_v2 = gpd.GeoSeries(Polygon([(bbox_geom_v2[0], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[3]), (bbox_geom_v2[0],bbox_geom_v2[3])]))
             # Check if the lists are matching - if they're the same, pass (do not want to look at the same polygon!). 
             if not bbox_geom_v2 == bbox_geom_v1:
                 for intersection_test in geom_gdf_v2.intersects(geom_buffer):
-                    overlapping_bbox_lst.append(bbox_geom_v1)
+                    # the intersection test returns true or false based on if it intersects
+                    # Need to figure a way, where if it intersects with two / check if it intersects with any others, it works/or not?? 30/11/2017 is a good date for this training. 
+                    
+                    if bbox_geom_v1 not in overlapping_bbox_lst:
+                        overlapping_bbox_lst.append(bbox_geom_v1)
             else:
                 pass
+        print('uno')
     print(overlapping_bbox_lst)
     print(len(overlapping_bbox_lst))
-    print(not_overlapping_bbox_lst)
-    print(len(not_overlapping_bbox_lst))
+    #print(not_overlapping_bbox_lst)
+    #print(len(not_overlapping_bbox_lst))
     
     # Order: minx, miny, maxx, maxy
     if len(overlapping_bbox_lst) >= 1:
         full_bbox = [(min(list(list(zip(*overlapping_bbox_lst))[0]))), (min(list(list(zip(*overlapping_bbox_lst))[1]))), (max(list(list(zip(*overlapping_bbox_lst))[2]))), (max(list(list(zip(*overlapping_bbox_lst))[3])))]
         # The next two lines give the functionality for the bounding box to be saved as geojson. 
-        #full_bbox_gdf = gpd.GeoSeries(Polygon([(full_bbox[0], full_bbox[1]), (full_bbox[2], full_bbox[1]), (full_bbox[2], full_bbox[3]), (full_bbox[0],full_bbox[3])]))
-        #full_bbox_gdf.to_file(filename='polygon.geojson', driver='GeoJSON')
+        full_bbox_gdf = gpd.GeoSeries(Polygon([(full_bbox[0], full_bbox[1]), (full_bbox[2], full_bbox[1]), (full_bbox[2], full_bbox[3]), (full_bbox[0],full_bbox[3])]))
+        full_bbox_gdf.to_file(filename='polygon.geojson', driver='GeoJSON')
+        
+        #############
         date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
         date.strftime("%Y-%m-%d")
         version = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
