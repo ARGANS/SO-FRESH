@@ -174,42 +174,79 @@ def selector(shapefile, mask):
                 pass
         else:
             pass
-
     overlapping_bbox_lst = []
-    not_overlapping_bbox_lst = []
-    
+    buff_bbox_lst = []
+    test_lst = []
+    itter_bool_lst = []
     for i, bbox_geom_v1 in enumerate(bbox_geom_lst):
         # Loop 1 of polygons which passed the first criteria.
         geom_gdf_v1 = gpd.GeoSeries(Polygon([(bbox_geom_v1[0], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[3]), (bbox_geom_v1[0],bbox_geom_v1[3])]))
         # Create a buffer of the co-ordinates.
         geom_buffer = geom_gdf_v1.buffer(0.75, join_style=2)
-        i = str(i)
-        geom_buffer.to_file(filename=os.path.join('buffer_poly'+ i +'.geojson'), driver='GeoJSON')
+        buf_minx = geom_buffer.bounds.iloc[0][0]
+        buf_miny = geom_buffer.bounds.iloc[0][1]
+        buf_maxx = geom_buffer.bounds.iloc[0][2]
+        buf_maxy = geom_buffer.bounds.iloc[0][3]
+        buff_bbox_lst.append([buf_minx, buf_miny, buf_maxx, buf_maxy])
+        
+        #buff_bbox_lst.append([geom_buffer.bounds.iloc[i][0], geom_buffer.bounds.iloc[i][1],geom_buffer.bounds.iloc[i][2],geom_buffer.bounds.iloc[i][3]])
+
+        # Produce a geojson file of the bounding box. 
+        #i = str(i)
+        #geom_buffer.to_file(filename=os.path.join('buffer_poly'+ i +'.geojson'), driver='GeoJSON')
         for bbox_geom_v2 in bbox_geom_lst:
             # Loop 2 of polygons which passed the first criteria.
             geom_gdf_v2 = gpd.GeoSeries(Polygon([(bbox_geom_v2[0], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[3]), (bbox_geom_v2[0],bbox_geom_v2[3])]))
+            
+            
             # Check if the lists are matching - if they're the same, pass (do not want to look at the same polygon!). 
+            #test_lst = []
             if not bbox_geom_v2 == bbox_geom_v1:
+                if bbox_geom_v1 not in overlapping_bbox_lst:
+                    overlapping_bbox_lst.append(bbox_geom_v1)
                 for intersection_test in geom_gdf_v2.intersects(geom_buffer):
-                    # the intersection test returns true or false based on if it intersects
-                    # Need to figure a way, where if it intersects with two / check if it intersects with any others, it works/or not?? 30/11/2017 is a good date for this training. 
+                    if intersection_test == True:
+                        test_lst.append(1)
+                    elif intersection_test == False:
+                        test_lst.append(0)
+                    else:
+                        pass
                     
-                    if bbox_geom_v1 not in overlapping_bbox_lst:
-                        overlapping_bbox_lst.append(bbox_geom_v1)
+                    #if bbox_geom_v1 not in overlapping_bbox_lst:
+                        #overlapping_bbox_lst.append(bbox_geom_v1)
             else:
                 pass
-        print('uno')
-    print(overlapping_bbox_lst)
-    print(len(overlapping_bbox_lst))
-    #print(not_overlapping_bbox_lst)
-    #print(len(not_overlapping_bbox_lst))
-    
+        print(len(test_lst)) 
+        itter_bool_lst.append(test_lst)
+    print(itter_bool_lst)
+
+    # 
+    # Hopefully this link can provide insight: https://stackoverflow.com/questions/46260892/finding-the-union-of-multiple-overlapping-rectangles-opencv-python/57546435
+    # Smash this problem!
+
+
+    sys.exit()
+    '''
+    # SAME FUNCTION AS ABOVE BUT FOR THE BUFFERED BBOX....
+    for buff_geom_v1 in buff_bbox_lst:
+        buff_gdf_v1 = gpd.GeoSeries(Polygon([(buff_geom_v1[0], buff_geom_v1[1]), (buff_geom_v1[2], buff_geom_v1[1]), (buff_geom_v1[2], buff_geom_v1[3]), (buff_geom_v1[0],buff_geom_v1[3])]))
+        for buff_geom_v2 in buff_bbox_lst:
+            buff_gdf_v2 = gpd.GeoSeries(Polygon([(buff_geom_v2[0], buff_geom_v2[1]), (buff_geom_v2[2], buff_geom_v2[1]), (buff_geom_v2[2], buff_geom_v2[3]), (buff_geom_v2[0],buff_geom_v2[3])]))
+
+            if not buff_geom_v2 == buff_geom_v1:
+                for buff_intersection in buff_gdf_v2.intersects(buff_gdf_v1):
+                    print(buff_intersection)
+        sys.exit()
+    '''
+
+
+
     # Order: minx, miny, maxx, maxy
     if len(overlapping_bbox_lst) >= 1:
         full_bbox = [(min(list(list(zip(*overlapping_bbox_lst))[0]))), (min(list(list(zip(*overlapping_bbox_lst))[1]))), (max(list(list(zip(*overlapping_bbox_lst))[2]))), (max(list(list(zip(*overlapping_bbox_lst))[3])))]
         # The next two lines give the functionality for the bounding box to be saved as geojson. 
-        full_bbox_gdf = gpd.GeoSeries(Polygon([(full_bbox[0], full_bbox[1]), (full_bbox[2], full_bbox[1]), (full_bbox[2], full_bbox[3]), (full_bbox[0],full_bbox[3])]))
-        full_bbox_gdf.to_file(filename='polygon.geojson', driver='GeoJSON')
+        #full_bbox_gdf = gpd.GeoSeries(Polygon([(full_bbox[0], full_bbox[1]), (full_bbox[2], full_bbox[1]), (full_bbox[2], full_bbox[3]), (full_bbox[0],full_bbox[3])]))
+        #full_bbox_gdf.to_file(filename='polygon.geojson', driver='GeoJSON')
         
         #############
         date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
