@@ -11,11 +11,13 @@ import fiona
 import gdal, ogr
 import geopandas as gpd
 import os, sys
+import itertools
 import pandas as pd
+import numpy as np
 from pathlib import Path
 import shapely.geometry
 from shapely.geometry import Point, Polygon, LineString, mapping
-from shapely.ops import nearest_points
+from shapely.ops import nearest_points, unary_union
 import matplotlib.pyplot as plt
 #--------------------------------------------------------------------------------
 # Script description:
@@ -170,25 +172,91 @@ def selector(shapefile, mask):
                 maxx = gdf.bounds.iloc[i][2]
                 maxy = gdf.bounds.iloc[i][3]
                 bbox_geom_lst.append([minx, miny, maxx, maxy])
+                #print([minx, miny, maxx, maxy])
+                
             else:
                 pass
         else:
             pass
+        #sys.exit()
     overlapping_bbox_lst = []
     buff_bbox_lst = []
     test_lst = []
     itter_bool_lst = []
+
+    #print(bbox_geom_lst)
+    union_list = []
+    non_union_list = []
+    original_bbox_list = []
+    for bbox_a, bbox_b in itertools.combinations(bbox_geom_lst, 2):
+        bbox_a = gpd.GeoSeries(Polygon([(bbox_a[0], bbox_a[1]), (bbox_a[2], bbox_a[1]), (bbox_a[2], bbox_a[3]), (bbox_a[0],bbox_a[3])]))
+        bbox_b = gpd.GeoSeries(Polygon([(bbox_b[0], bbox_b[1]), (bbox_b[2], bbox_b[1]), (bbox_b[2], bbox_b[3]), (bbox_b[0],bbox_b[3])]))
+        
+
+        bbox_a_buffered = bbox_a.buffer(0.75, join_style=2)
+        bbox_b_buffered = bbox_b.buffer(0.75, join_style=2)
+        
+        #print(bbox_a)
+        #print(bbox_b)
+        #print(bbox_a_buffered)
+        #print(bbox_b_buffered)
+        
+        for intersection in bbox_a_buffered.intersects(bbox_b_buffered):
+            if intersection == True:
+                union = bbox_a_buffered.union(bbox_b_buffered)
+                union_list.append(union) 
+                ori_union = bbox_a.union(bbox_b)
+                original_bbox_list.append(ori_union)
+            
+            else:
+                print('Done')
+                #test.to_file(filename=os.path.join('union_poly_test.geojson'), driver='GeoJSON')
+                #union_list.append(union)
+                #original_bbox_list.append(ori_union)
+            #union_list[0].to_file(filename=os.path.join('union_poly_test.geojson'), driver='GeoJSON')
+    for i, un in enumerate(union_list):
+        i = str(i)
+        un.to_file(filename=os.path.join('union_poly'+ i +'.geojson'), driver='GeoJSON')
+
+    sys.exit()
+    print(union_list)
+    print(original_bbox_list)
+    sys.exit()
+
+
+    # TO BE DONE:
+    # The union is working, need to figure out a way to loop through the data until the loop finishes checking for possible matches.
+
+
+
+
+
+
+
+
+
+
+
+    
+    for union in union_list:
+        union.to_file(filename=os.path.join('union_poly_test.geojson'), driver='GeoJSON')
+
+    sys.exit()
+
     for i, bbox_geom_v1 in enumerate(bbox_geom_lst):
         # Loop 1 of polygons which passed the first criteria.
         geom_gdf_v1 = gpd.GeoSeries(Polygon([(bbox_geom_v1[0], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[3]), (bbox_geom_v1[0],bbox_geom_v1[3])]))
         # Create a buffer of the co-ordinates.
         geom_buffer = geom_gdf_v1.buffer(0.75, join_style=2)
-        buf_minx = geom_buffer.bounds.iloc[0][0]
-        buf_miny = geom_buffer.bounds.iloc[0][1]
-        buf_maxx = geom_buffer.bounds.iloc[0][2]
-        buf_maxy = geom_buffer.bounds.iloc[0][3]
-        buff_bbox_lst.append([buf_minx, buf_miny, buf_maxx, buf_maxy])
-        
+        #print(geom_buffer)
+
+
+        #buf_minx = geom_buffer.bounds.iloc[0][0]
+        #buf_miny = geom_buffer.bounds.iloc[0][1]
+        #buf_maxx = geom_buffer.bounds.iloc[0][2]
+        #buf_maxy = geom_buffer.bounds.iloc[0][3]
+        #buff_bbox_lst.append([buf_minx, buf_miny, buf_maxx, buf_maxy])
+    
         #buff_bbox_lst.append([geom_buffer.bounds.iloc[i][0], geom_buffer.bounds.iloc[i][1],geom_buffer.bounds.iloc[i][2],geom_buffer.bounds.iloc[i][3]])
 
         # Produce a geojson file of the bounding box. 
@@ -204,11 +272,10 @@ def selector(shapefile, mask):
             if not bbox_geom_v2 == bbox_geom_v1:
                 if bbox_geom_v1 not in overlapping_bbox_lst:
                     overlapping_bbox_lst.append(bbox_geom_v1)
+                
                 for intersection_test in geom_gdf_v2.intersects(geom_buffer):
                     if intersection_test == True:
                         test_lst.append(1)
-                    elif intersection_test == False:
-                        test_lst.append(0)
                     else:
                         pass
                     
@@ -216,16 +283,16 @@ def selector(shapefile, mask):
                         #overlapping_bbox_lst.append(bbox_geom_v1)
             else:
                 pass
-        print(len(test_lst)) 
-        itter_bool_lst.append(test_lst)
-    print(itter_bool_lst)
+        #print(len(test_lst)) 
+        #itter_bool_lst.append(test_lst)
+    #print(itter_bool_lst)
 
     # 
     # Hopefully this link can provide insight: https://stackoverflow.com/questions/46260892/finding-the-union-of-multiple-overlapping-rectangles-opencv-python/57546435
     # Smash this problem!
 
 
-    sys.exit()
+    
     '''
     # SAME FUNCTION AS ABOVE BUT FOR THE BUFFERED BBOX....
     for buff_geom_v1 in buff_bbox_lst:
