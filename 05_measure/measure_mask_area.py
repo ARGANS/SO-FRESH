@@ -172,57 +172,136 @@ def selector(shapefile, mask):
                 maxx = gdf.bounds.iloc[i][2]
                 maxy = gdf.bounds.iloc[i][3]
                 bbox_geom_lst.append([minx, miny, maxx, maxy])
-                #print([minx, miny, maxx, maxy])
+                #bbox_geom_lst.append(gdf)
                 
             else:
                 pass
         else:
             pass
-        #sys.exit()
-    overlapping_bbox_lst = []
-    buff_bbox_lst = []
-    test_lst = []
-    itter_bool_lst = []
+    '''
+    bbox_geoseries_list = []
+    bbox_buf_geoseries_list = []
 
-    #print(bbox_geom_lst)
+    for bbox in bbox_geom_lst:
+        bbox = gpd.GeoSeries(Polygon([(bbox[0], bbox[1]), (bbox[2], bbox[1]), (bbox[2], bbox[3]), (bbox[0],bbox[3])]))
+        bbox_geoseries_list.append(bbox)
+        bbox_buffered = bbox.buffer(0.75, join_style=2)
+        bbox_buf_geoseries_list.append(bbox_buffered)
+    
+    
+    hadoverlapping = None
+    overlapping = []
+    while(hadoverlapping is None or hadoverlapping == False):
+        hadoverlapping = False
+        for i in range(len(bbox_buf_geoseries_list)):
+            for j in range(len(bbox_buf_geoseries_list)-(i+1)):
+                if bbox_buf_geoseries_list[i][0].intersects(bbox_buf_geoseries_list[j][0]):
+                    overlapping.append(bbox_buf_geoseries_list[i].union(bbox_buf_geoseries_list[j]))
+        BB = overlapping
+        break
+    print(len(BB))
+    print('DONE')
+    for i, un in enumerate(BB):
+        i = str(i)
+        un.to_file(filename=os.path.join('union_poly'+ i +'.geojson'), driver='GeoJSON')
+
+
+    sys.exit()
+    '''
+    
+    #################################
     union_list = []
-    non_union_list = []
-    original_bbox_list = []
-    for bbox_a, bbox_b in itertools.combinations(bbox_geom_lst, 2):
-        bbox_a = gpd.GeoSeries(Polygon([(bbox_a[0], bbox_a[1]), (bbox_a[2], bbox_a[1]), (bbox_a[2], bbox_a[3]), (bbox_a[0],bbox_a[3])]))
-        bbox_b = gpd.GeoSeries(Polygon([(bbox_b[0], bbox_b[1]), (bbox_b[2], bbox_b[1]), (bbox_b[2], bbox_b[3]), (bbox_b[0],bbox_b[3])]))
-        
+    check = []
+    
+    # Both lists as GeoSeries.
+    bbox_list = []
+    bbox_buf_list = []
+    
+    for bbox in bbox_geom_lst:
+        bbox = gpd.GeoSeries(Polygon([(bbox[0], bbox[1]), (bbox[2], bbox[1]), (bbox[2], bbox[3]), (bbox[0],bbox[3])]))
+        bbox_list.append(bbox)
+        bbox_buffered = bbox.buffer(0.75, join_style=2)
+        bbox_buf_list.append(bbox_buffered)
+    for i, une in enumerate(bbox_buf_list):
+        i = str(i)
+        une.to_file(filename=os.path.join('bbox_buf'+ i +'.geojson'), driver='GeoJSON')
+    '''
+    test_intersection = gpd.GeoDataFrame(gpd.GeoSeries([poly[0].intersection(poly[1]) for poly in itertools.combinations(bbox_buf_geoseries_list, 2) if poly[0].intersects(poly[1])]), columns=['geometry'])
+    #print(type(test_intersection))
+   
 
-        bbox_a_buffered = bbox_a.buffer(0.75, join_style=2)
-        bbox_b_buffered = bbox_b.buffer(0.75, join_style=2)
-        
-        #print(bbox_a)
-        #print(bbox_b)
-        #print(bbox_a_buffered)
-        #print(bbox_b_buffered)
-        
-        for intersection in bbox_a_buffered.intersects(bbox_b_buffered):
-            if intersection == True:
-                union = bbox_a_buffered.union(bbox_b_buffered)
-                union_list.append(union) 
-                ori_union = bbox_a.union(bbox_b)
-                original_bbox_list.append(ori_union)
-            
+    union = gpd.overlay(test_intersection, test_intersection, how='intersection')
+
+    union.to_file(filename=os.path.join('intersection_test.geojson'), driver='GeoJSON')
+
+    sys.exit()
+    ###############################
+    '''
+
+
+
+    for bbox_a, bbox_b in itertools.combinations(bbox_buf_list, 2):
+        print(bbox_a)
+        print(bbox_b)
+        sys.exit()
+        while (1):
+            inter = bbox_a.intersects(bbox_b)
+            if inter[0] == True:
+                found = 0
+                union = bbox_a.union(bbox_b)
+                union_list.append(union)
+                found = 1
+                print('1')
+                break
+
             else:
-                print('Done')
-                #test.to_file(filename=os.path.join('union_poly_test.geojson'), driver='GeoJSON')
-                #union_list.append(union)
-                #original_bbox_list.append(ori_union)
-            #union_list[0].to_file(filename=os.path.join('union_poly_test.geojson'), driver='GeoJSON')
+                found == 0
+                check.append(bbox_a)
+                print('2')
+                break
+        else:
+            break
+
+    for uni_bbox_a, uni_bbox_b in itertools.combinations(union_list, 2):
+        while (1):
+            inter = uni_bbox_a.intersects(uni_bbox_b)
+            if inter[0] == True:
+                found = 0
+                if uni_bbox_a[0] in union_list:
+                    union_list.remove(uni_bbox_a)
+                if uni_bbox_b[0] in union_list:
+                    union_list.remove(uni_bbox_b)
+                union = uni_bbox_a.union(uni_bbox_b)
+                union_list.append(union)
+                found = 1
+                print('3')
+                break
+
+            else:
+                found == 0
+                print('4')
+                break 
+        else:
+            break
+
+    #print(len(union_list))
+    #print(len(check))
+    #union_list[222].to_file(filename=os.path.join('union_test.geojson'), driver='GeoJSON')
+
+    
     for i, un in enumerate(union_list):
         i = str(i)
         un.to_file(filename=os.path.join('union_poly'+ i +'.geojson'), driver='GeoJSON')
 
-    sys.exit()
-    print(union_list)
-    print(original_bbox_list)
+    for i, une in enumerate(check):
+        i = str(i)
+        une.to_file(filename=os.path.join('check_poly'+ i +'.geojson'), driver='GeoJSON')
+
+
     sys.exit()
 
+
+    ##################################################
 
     # TO BE DONE:
     # The union is working, need to figure out a way to loop through the data until the loop finishes checking for possible matches.
