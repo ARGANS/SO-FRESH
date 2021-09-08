@@ -140,251 +140,28 @@ def selector(shapefile, mask):
     filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/"
     # Read shapefile
     gdf = gpd.read_file(shapefile)
+    #gdf["buffered"] = gdf.buffer(0.75, join_style=2)
+    #print(gdf)
+    #sys.exit()
+
     outputlist = []
     bbox_geom_lst = []
     # If the polygon intersects with the land mask - ignore.
-    for i, geom_intersect in enumerate(gdf["geometry"].intersects(mask)):
-        if geom_intersect == False:
-            # If area is more than X km2, collect file information.
-            if len(gdf["Area"] > 200) >= 1:
-                # Outputs:
-                '''
-                # Working code!!
-                date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
-                date.strftime("%Y-%m-%d")
-                version = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
-                tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
-                area = gdf['Area'][i]
-                filename = os.path.basename(shapefile).rsplit('_', 4)[0][3:]
-                minx = gdf.bounds.iloc[i][0]
-                miny = gdf.bounds.iloc[i][1]
-                maxx = gdf.bounds.iloc[i][2]
-                maxy = gdf.bounds.iloc[i][3]
-                outputlist.append([date, version, tile, area, filename, minx, miny, maxx, maxy])
-                # Buffer the bounding box by 1.5 (this increases the lat lon by 1.5)
-                geometry_gpd = gpd.GeoSeries(Polygon([(minx, miny), (maxx, miny), (maxx, maxy), (minx,maxy)]))
-                s = geometry_gpd.buffer(1.5, join_style=2)
-                s.to_file(filename='polygon.geojson', driver='GeoJSON')
-                sys.exit()
-                '''
-                minx = gdf.bounds.iloc[i][0]
-                miny = gdf.bounds.iloc[i][1]
-                maxx = gdf.bounds.iloc[i][2]
-                maxy = gdf.bounds.iloc[i][3]
-                bbox_geom_lst.append([minx, miny, maxx, maxy])
-                #bbox_geom_lst.append(gdf)
-                
-            else:
-                pass
-        else:
-            pass
-    '''
-    bbox_geoseries_list = []
-    bbox_buf_geoseries_list = []
-
-    for bbox in bbox_geom_lst:
-        bbox = gpd.GeoSeries(Polygon([(bbox[0], bbox[1]), (bbox[2], bbox[1]), (bbox[2], bbox[3]), (bbox[0],bbox[3])]))
-        bbox_geoseries_list.append(bbox)
-        bbox_buffered = bbox.buffer(0.75, join_style=2)
-        bbox_buf_geoseries_list.append(bbox_buffered)
+    for index, row in gdf.iterrows():
+        if row["geometry"].intersects(mask):
+            gdf.drop(index, inplace=True)
+        if not row["Area"] > 200:
+            gdf.drop(index, inplace=True)
     
+    gdf_buffered = gdf.envelope.buffer(0.75, join_style=2)
+    union = gdf_buffered.unary_union
+    shapes_series = gpd.GeoSeries([polygon for polygon in union], crs=gdf.crs)
+    #shapes_series.to_file(filename='test_v1.geojson', driver='GeoJSON')
     
-    hadoverlapping = None
-    overlapping = []
-    while(hadoverlapping is None or hadoverlapping == False):
-        hadoverlapping = False
-        for i in range(len(bbox_buf_geoseries_list)):
-            for j in range(len(bbox_buf_geoseries_list)-(i+1)):
-                if bbox_buf_geoseries_list[i][0].intersects(bbox_buf_geoseries_list[j][0]):
-                    overlapping.append(bbox_buf_geoseries_list[i].union(bbox_buf_geoseries_list[j]))
-        BB = overlapping
-        break
-    print(len(BB))
-    print('DONE')
-    for i, un in enumerate(BB):
-        i = str(i)
-        un.to_file(filename=os.path.join('union_poly'+ i +'.geojson'), driver='GeoJSON')
-
-
-    sys.exit()
-    '''
-    
-    #################################
-    union_list = []
-    check = []
-    
-    # Both lists as GeoSeries.
-    bbox_list = []
-    bbox_buf_list = []
-    
-    for bbox in bbox_geom_lst:
-        bbox = gpd.GeoSeries(Polygon([(bbox[0], bbox[1]), (bbox[2], bbox[1]), (bbox[2], bbox[3]), (bbox[0],bbox[3])]))
-        bbox_list.append(bbox)
-        bbox_buffered = bbox.buffer(0.75, join_style=2)
-        bbox_buf_list.append(bbox_buffered)
-    for i, une in enumerate(bbox_buf_list):
-        i = str(i)
-        une.to_file(filename=os.path.join('bbox_buf'+ i +'.geojson'), driver='GeoJSON')
-    '''
-    test_intersection = gpd.GeoDataFrame(gpd.GeoSeries([poly[0].intersection(poly[1]) for poly in itertools.combinations(bbox_buf_geoseries_list, 2) if poly[0].intersects(poly[1])]), columns=['geometry'])
-    #print(type(test_intersection))
-   
-
-    union = gpd.overlay(test_intersection, test_intersection, how='intersection')
-
-    union.to_file(filename=os.path.join('intersection_test.geojson'), driver='GeoJSON')
-
-    sys.exit()
-    ###############################
-    '''
-
-
-
-    for bbox_a, bbox_b in itertools.combinations(bbox_buf_list, 2):
-        print(bbox_a)
-        print(bbox_b)
-        sys.exit()
-        while (1):
-            inter = bbox_a.intersects(bbox_b)
-            if inter[0] == True:
-                found = 0
-                union = bbox_a.union(bbox_b)
-                union_list.append(union)
-                found = 1
-                print('1')
-                break
-
-            else:
-                found == 0
-                check.append(bbox_a)
-                print('2')
-                break
-        else:
-            break
-
-    for uni_bbox_a, uni_bbox_b in itertools.combinations(union_list, 2):
-        while (1):
-            inter = uni_bbox_a.intersects(uni_bbox_b)
-            if inter[0] == True:
-                found = 0
-                if uni_bbox_a[0] in union_list:
-                    union_list.remove(uni_bbox_a)
-                if uni_bbox_b[0] in union_list:
-                    union_list.remove(uni_bbox_b)
-                union = uni_bbox_a.union(uni_bbox_b)
-                union_list.append(union)
-                found = 1
-                print('3')
-                break
-
-            else:
-                found == 0
-                print('4')
-                break 
-        else:
-            break
-
-    #print(len(union_list))
-    #print(len(check))
-    #union_list[222].to_file(filename=os.path.join('union_test.geojson'), driver='GeoJSON')
-
-    
-    for i, un in enumerate(union_list):
-        i = str(i)
-        un.to_file(filename=os.path.join('union_poly'+ i +'.geojson'), driver='GeoJSON')
-
-    for i, une in enumerate(check):
-        i = str(i)
-        une.to_file(filename=os.path.join('check_poly'+ i +'.geojson'), driver='GeoJSON')
-
-
-    sys.exit()
-
 
     ##################################################
-
-    # TO BE DONE:
-    # The union is working, need to figure out a way to loop through the data until the loop finishes checking for possible matches.
-
-
-
-
-
-
-
-
-
-
-
-    
-    for union in union_list:
-        union.to_file(filename=os.path.join('union_poly_test.geojson'), driver='GeoJSON')
-
-    sys.exit()
-
-    for i, bbox_geom_v1 in enumerate(bbox_geom_lst):
-        # Loop 1 of polygons which passed the first criteria.
-        geom_gdf_v1 = gpd.GeoSeries(Polygon([(bbox_geom_v1[0], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[3]), (bbox_geom_v1[0],bbox_geom_v1[3])]))
-        # Create a buffer of the co-ordinates.
-        geom_buffer = geom_gdf_v1.buffer(0.75, join_style=2)
-        #print(geom_buffer)
-
-
-        #buf_minx = geom_buffer.bounds.iloc[0][0]
-        #buf_miny = geom_buffer.bounds.iloc[0][1]
-        #buf_maxx = geom_buffer.bounds.iloc[0][2]
-        #buf_maxy = geom_buffer.bounds.iloc[0][3]
-        #buff_bbox_lst.append([buf_minx, buf_miny, buf_maxx, buf_maxy])
-    
-        #buff_bbox_lst.append([geom_buffer.bounds.iloc[i][0], geom_buffer.bounds.iloc[i][1],geom_buffer.bounds.iloc[i][2],geom_buffer.bounds.iloc[i][3]])
-
-        # Produce a geojson file of the bounding box. 
-        #i = str(i)
-        #geom_buffer.to_file(filename=os.path.join('buffer_poly'+ i +'.geojson'), driver='GeoJSON')
-        for bbox_geom_v2 in bbox_geom_lst:
-            # Loop 2 of polygons which passed the first criteria.
-            geom_gdf_v2 = gpd.GeoSeries(Polygon([(bbox_geom_v2[0], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[3]), (bbox_geom_v2[0],bbox_geom_v2[3])]))
-            
-            
-            # Check if the lists are matching - if they're the same, pass (do not want to look at the same polygon!). 
-            #test_lst = []
-            if not bbox_geom_v2 == bbox_geom_v1:
-                if bbox_geom_v1 not in overlapping_bbox_lst:
-                    overlapping_bbox_lst.append(bbox_geom_v1)
-                
-                for intersection_test in geom_gdf_v2.intersects(geom_buffer):
-                    if intersection_test == True:
-                        test_lst.append(1)
-                    else:
-                        pass
-                    
-                    #if bbox_geom_v1 not in overlapping_bbox_lst:
-                        #overlapping_bbox_lst.append(bbox_geom_v1)
-            else:
-                pass
-        #print(len(test_lst)) 
-        #itter_bool_lst.append(test_lst)
-    #print(itter_bool_lst)
-
-    # 
-    # Hopefully this link can provide insight: https://stackoverflow.com/questions/46260892/finding-the-union-of-multiple-overlapping-rectangles-opencv-python/57546435
-    # Smash this problem!
-
-
-    
-    '''
-    # SAME FUNCTION AS ABOVE BUT FOR THE BUFFERED BBOX....
-    for buff_geom_v1 in buff_bbox_lst:
-        buff_gdf_v1 = gpd.GeoSeries(Polygon([(buff_geom_v1[0], buff_geom_v1[1]), (buff_geom_v1[2], buff_geom_v1[1]), (buff_geom_v1[2], buff_geom_v1[3]), (buff_geom_v1[0],buff_geom_v1[3])]))
-        for buff_geom_v2 in buff_bbox_lst:
-            buff_gdf_v2 = gpd.GeoSeries(Polygon([(buff_geom_v2[0], buff_geom_v2[1]), (buff_geom_v2[2], buff_geom_v2[1]), (buff_geom_v2[2], buff_geom_v2[3]), (buff_geom_v2[0],buff_geom_v2[3])]))
-
-            if not buff_geom_v2 == buff_geom_v1:
-                for buff_intersection in buff_gdf_v2.intersects(buff_gdf_v1):
-                    print(buff_intersection)
-        sys.exit()
-    '''
-
+    #- Append all items in shapes_series bounding boxes to csv.
+    #################################################
 
 
     # Order: minx, miny, maxx, maxy
