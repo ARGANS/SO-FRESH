@@ -31,7 +31,6 @@ def cumval(x):
     # Adds up all values.
     return x.sum()
 
-
 def erosion_dialation(heatmap, eroded_output):
     # Read image.
     array = rasterio.open(heatmap).read(1)

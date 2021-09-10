@@ -28,6 +28,7 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 # Functions:
 #----------------------------------------------------------------------------------------------------
 def modis_extract_geom(input, coords):
+    # Extract geometry from the sinusoidal tiles reference based on those reference in the filename.
     if os.path.basename(input)[27] == 'h' and os.path.basename(input)[30] == 'v':
         h, v = os.path.basename(input)[28:-27], os.path.basename(input)[31:-24]
     else:
@@ -50,6 +51,7 @@ def modis_extract_geom(input, coords):
     return(xmin, xres, 0, ymax, 0, -yres)
 
 def modis_jpg2tif(input, output, epsg, geom):
+    # Convert image from a JPEG to a TIFF.
     img = gdal.Open(input).ReadAsArray()
 
     if len(gdal.Open(input).ReadAsArray().shape) == 3:
@@ -82,8 +84,6 @@ if __name__ == "__main__":
         # Arguments:
         #----------------------------------------------------------------------------------------------------
         parser.add_argument("-i", "--input-img", required=True, nargs = "+", help="The input jpg file. The output will be output to this directory with the same filename with a 'tif' extension.").completer = FilesCompleter(allowednames=(".jpg"))
-        #parser.add_argument("-c", "--coords-csv", required=True, help="MODIS Sinusodial tiles CSV file.").completer = FilesCompleter(allowednames=(".csv"))
-        #parser.add_argument("-e", "--epsg", required=False, default=4326, help="The EPSG to set the image to, default is 4326.")
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
 
