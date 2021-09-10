@@ -140,24 +140,38 @@ def selector(shapefile, mask):
     filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/"
     # Read shapefile
     gdf = gpd.read_file(shapefile)
-    #gdf["buffered"] = gdf.buffer(0.75, join_style=2)
-    #print(gdf)
-    #sys.exit()
-
-    outputlist = []
-    bbox_geom_lst = []
-    # If the polygon intersects with the land mask - ignore.
+    
+    #If the polygon intersects with the land mask - ignore.
+    # If polygon is smaller than 200 km2 - ignore.
     for index, row in gdf.iterrows():
-        if row["geometry"].intersects(mask):
-            gdf.drop(index, inplace=True)
-        if not row["Area"] > 200:
+        if row["geometry"].intersects(mask) or not row["Area"] > 200:
             gdf.drop(index, inplace=True)
     
+    # Buffer the bounding box of the polygons.
     gdf_buffered = gdf.envelope.buffer(0.75, join_style=2)
+    # Union all those that overlap.
     union = gdf_buffered.unary_union
-    shapes_series = gpd.GeoSeries([polygon for polygon in union], crs=gdf.crs)
-    #shapes_series.to_file(filename='test_v1.geojson', driver='GeoJSON')
-    
+    # Turn the union in to a GeoSeries.
+    shapes_series = gpd.GeoSeries(union, crs=gdf.crs)
+    # If the file is a 'MultiPolygon' the explode function splits it into individual polygons.
+    exploded = shapes_series.explode()
+    #exploded.to_file(filename='test_v1.geojson', driver='GeoJSON')
+    outputlist = []
+    for index, row in exploded.bounds.iterrows():
+        minx, miny, maxx, maxy = row[0], row[1], row[2], row[3]
+        date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
+        date.strftime("%Y-%m-%d")
+        version = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[4]
+        tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
+        filename = os.path.basename(shapefile).rsplit('_', 4)[0][3:]
+        quantity_poly = len(exploded.bounds)
+        outputlist.append([date, version, tile, filename, quantity_poly, row[0], row[1], row[2], row[3]])
+    else:
+        pass
+
+    return outputlist
+
+
 
     ##################################################
     #- Append all items in shapes_series bounding boxes to csv.
@@ -184,7 +198,7 @@ def selector(shapefile, mask):
         pass
     
     return outputlist
-
+   
 def append_data(img, info):
     # If wanting to search for solo polygons.
     '''
@@ -216,7 +230,7 @@ def append_data(img, info):
     '''
     if not len(info) == 0:
         for i in info:
-            # If wanting to search for polygons that are nearby to eachother (within buffer distance).
+            # Extract necesary file information to where 
             files = os.path.split(img)[0].rsplit('/')
             product = ''.join(difflib.get_close_matches(os.path.split(img)[1].rsplit('_', 4)[0].rsplit('.', 7)[1], files))
             filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/"
@@ -239,7 +253,7 @@ def append_data(img, info):
                     headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy"]
                     writer = csv.DictWriter(infile, fieldnames=headers)
                     writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
- 
+
             else:
                 pass
     else:
@@ -263,80 +277,23 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
-        shp_in_criteria = []
-        poly_geom_in_criteria = []
         for img in args.input_img:
             # Vectorize image.
             vector = vectorize(img)
             # Calculate area of polygons in shapefile.
             area = area_calculator(vector)
+            '''
             ### Create polygon centroids
             ###centroid = generate_polygon_centroid(vector)
             ### Calculate distance of polygons in shapefile from land mask.
             ###distance = distance_calculator(centroid, antartica_mask)
-            
-            """
-            # PRIOR TESTING
-            init_criteria = area_distance_criteria(vector, antarctica_mask)
-            # Append the shapefiles which meet the criteria to a list.
-            if init_criteria[0] not in shp_in_criteria:
-                # Check if list if empty - skips if it is empty.
-                if init_criteria[0]:
-                    shp_in_criteria.append(init_criteria[0]) # Ensures duplicates are removed (as multi-polygons often happen).
-                else:
-                    pass
-            else:
-                pass
-            # Makes sure list is not empty.
-            if init_criteria[1]:
-                poly_geom_in_criteria.append(init_criteria[1])
-            """
-
-            
-            # Selects those which fit in the criteria (i.e. area <= 200km2 and out of the land mask).
+            '''
+            # Selects those which fit in the criteria (i.e. area <= 200km2 and do not intersect land mask).
             select = selector(vector, antarctica_mask)
             # For files which pass - save them to the csv.
             # Check if the csv exists prior and whether it contains information with similar dates - as this function applies them to the csv as new rows. 
-            #append = append_data(img, select)
+            append = append_data(img, select)
             
-        
-
-
-
-
-        """
-        # Work in progress... if other method doesn't work
-        if not len(shp_in_criteria) == len(poly_geom_in_criteria):
-            raise RuntimeError("The total number of shapefiles and total number of GeoDataFrames do not match")
-
-        bbox_list = []
-        for geom in poly_geom_in_criteria:
-            bbox = bbox_extract(geom[0])
-            bbox_list.append(bbox)
-
-        if not len(shp_in_criteria) == len(bbox_list):
-            raise RuntimeError("The total number of shapefiles and total number of bounding boxes do not match")
-
-        overlapping_bbox_lst = []
-        for shp, bbox in zip(shp_in_criteria, bbox_list):
-            for bbox_geom_v1 in bbox:
-                # Loop 1 of polygons which passed the first criteria.
-                geom_gdf_v1 = gpd.GeoSeries(Polygon([(bbox_geom_v1[0], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[1]), (bbox_geom_v1[2], bbox_geom_v1[3]), (bbox_geom_v1[0],bbox_geom_v1[3])]))
-                # Create a buffer of the co-ordinates.
-                geom_buffer = geom_gdf_v1.buffer(1.5, join_style=2)
-                for bbox_geom_v2 in bbox:
-                    # Loop 2 of polygons which passed the first criteria.
-                    geom_gdf_v2 = gpd.GeoSeries(Polygon([(bbox_geom_v2[0], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[1]), (bbox_geom_v2[2], bbox_geom_v2[3]), (bbox_geom_v2[0],bbox_geom_v2[3])]))
-                    # Check if the lists are matching - if they're the same, pass (do not want to look at the same polygon!). 
-                    if not bbox_geom_v2 == bbox_geom_v1:
-                        for intersection_test in geom_gdf_v2.intersects(geom_buffer):
-                            overlapping_bbox_lst.append(bbox_geom_v1)
-                    else:
-                        pass
-
-        print(overlapping_bbox_lst[0])
-        sys.exit()
-        """
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
