@@ -5,7 +5,10 @@ import argcomplete, argparse
 from argcomplete.completers import ChoicesCompleter, FilesCompleter
 from collections import Counter
 import csv
+import geopandas as gpd
+import pandas as pd
 from rtree import index
+from shapely import wkt
 import os, sys
 
 #--------------------------------------------------------------------------------
@@ -24,6 +27,14 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 #----------------------------------------------------------------------------------------------------
 # Functions:
 #----------------------------------------------------------------------------------------------------
+def csv_2_gdf(input_csv):
+    # Read csv to pandas dataframe, and applying the geometry column to give coordinates in the WKT format. 
+    df = pd.read_csv(input_csv)
+    df['geometry'] = df['geometry'].apply(wkt.loads)
+    gdf = gpd.GeoDataFrame(df, geometry = 'geometry')
+    return(gdf)
+
+
 def month_selector(csvfile):
     month_range = []
     with open(csvfile) as file:
@@ -54,6 +65,12 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
+        gdf = csv_2_gdf(args.input_csv)
+        print(gdf)
+        
+
+
+        '''
         month_range = month_selector(args.input_csv)
         #Things to be done:
         # Smash today - you're awesome.
@@ -101,11 +118,11 @@ if __name__ == "__main__":
             print(test)
             print(len(test))
             sys.exit()
-
+        '''
 
                    
 
-            '''
+        '''
                 if month == row[0][5:-3]:
                     print('yay')
                     
