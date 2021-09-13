@@ -79,7 +79,7 @@ def selector(shapefile, mask):
     exploded = shapes_series.explode()
     #exploded.to_file(filename='test_v1.geojson', driver='GeoJSON')
     outputlist = []
-    for index, row in exploded.bounds.iterrows():
+    for geom, (index, row) in zip(exploded, (exploded.bounds.iterrows())):
         minx, miny, maxx, maxy = row[0], row[1], row[2], row[3]
         date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
         date.strftime("%Y-%m-%d")
@@ -87,7 +87,7 @@ def selector(shapefile, mask):
         tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
         filename = os.path.basename(shapefile).rsplit('_', 4)[0][3:]
         quantity_poly = len(exploded.bounds)
-        outputlist.append([date, version, tile, filename, quantity_poly, row[0], row[1], row[2], row[3]])
+        outputlist.append([date, version, tile, filename, quantity_poly, row[0], row[1], row[2], row[3], geom])
     else:
         pass
 
@@ -108,18 +108,18 @@ def append_data_by_year(img, info):
                 pass
             # Create a new csv with specified headers and insert a row.
             if not os.path.exists(str(filepath + "01_csv/" +  img.rsplit(".", 6)[1][1:-3] + "/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
-                headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy"]
+                headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy", "geometry"]
                 Path(str(filepath + "01_csv/" +  img.rsplit(".", 6)[1][1:-3] + "/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv").touch()
                 with open(str(filepath + "01_csv/" +  img.rsplit(".", 6)[1][1:-3] + "/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "w+") as f:
                     writer = csv.DictWriter(f, fieldnames=headers)
                     writer.writeheader()
-                    writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+                    writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8], "geometry":i[9]})
             # If the file exists, insert the following data in a new row.
             elif os.path.exists(str(filepath + "01_csv/" +  img.rsplit(".", 6)[1][1:-3] + "/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
                 with open(str(filepath + "01_csv/" +  img.rsplit(".", 6)[1][1:-3] + "/" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "a") as infile:
-                    headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy"]
+                    headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy", "geometry"]
                     writer = csv.DictWriter(infile, fieldnames=headers)
-                    writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+                    writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8], "geometry":i[9]})
 
             else:
                 pass
@@ -141,18 +141,18 @@ def append_data_by_month(img, info):
                 pass
             # Create a new csv with specified headers and insert a row.
             if not os.path.exists(str(filepath + "01_csv/" +  img.rsplit(".", 6)[1][1:-3] + "/" + files[:-1][-1] + "_" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
-                headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy"]
+                headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy", "geometry"]
                 Path(str(filepath + "01_csv/" +  img.rsplit(".", 6)[1][1:-3] + "/" + files[:-1][-1] + "_" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv").touch()
                 with open(str(filepath + "01_csv/" +  img.rsplit(".", 6)[1][1:-3] + "/" + files[:-1][-1] + "_" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "w+") as f:
                     writer = csv.DictWriter(f, fieldnames=headers)
                     writer.writeheader()
-                    writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+                    writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8], "geometry":i[9]})
             # If the file exists, insert the following data in a new row.
             elif os.path.exists(str(filepath + "01_csv/" +  img.rsplit(".", 6)[1][1:-3] + "/" + files[:-1][-1] + "_" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv"):
                 with open(str(filepath + "01_csv/" +  img.rsplit(".", 6)[1][1:-3] + "/" + files[:-1][-1] + "_" + img.rsplit(".", 6)[1][1:-3]) + "_imgs_in_criteria.csv", "a") as infile:
-                    headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy"]
+                    headers = ["Date", "Version", "Tile", "Filename", "Number of Polygons", "minx", "miny", "maxx", "maxy", "geometry"]
                     writer = csv.DictWriter(infile, fieldnames=headers)
-                    writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8]})
+                    writer.writerow({"Date":i[0], "Version":i[1], "Tile":i[2], "Filename":i[3], "Number of Polygons":i[4], "minx":i[5], "miny":i[6], "maxx":i[7], "maxy":i[8], "geometry":i[9]})
 
             else:
                 pass
