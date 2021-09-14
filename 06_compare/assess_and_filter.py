@@ -6,8 +6,14 @@ from argcomplete.completers import ChoicesCompleter, FilesCompleter
 from collections import Counter
 import csv
 import geopandas as gpd
+from itertools import combinations
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import pyproj
+from pyproj import CRS
 from rtree import index
+import seaborn as sns
 from shapely import wkt
 import os, sys
 
@@ -33,6 +39,68 @@ def csv_2_gdf(input_csv):
     df['geometry'] = df['geometry'].apply(wkt.loads)
     gdf = gpd.GeoDataFrame(df, geometry = 'geometry')
     return(gdf)
+
+def overlap_check(gdf):
+    i = 0
+    j = 0
+    for iterr in combinations(gdf.iterrows(), 2):
+        print(iterr)
+        if iterr[0][1][9].intersects(iterr[1][1][9]):
+            i = i +1
+            print(i)
+        else:
+            j = j +1
+            print(j)
+    sys.exit()
+        
+    crs =  pyproj.CRS.from_user_input("EPSG:4326")
+    series = gpd.GeoSeries(iterr, crs=crs)
+
+    '''
+    for index, row in gdf.iterrows():
+        print(row.geometry)
+        sys.exit()
+
+        #test = np.where(row.geometry.overlaps(row.geometry, align=False), True, False)
+        test = (row.geometry).overlaps(row.geometry, align=False)
+        #print(row.geometry)
+        print(test)
+        sys.exit()
+    '''
+    '''
+    data_overlaps = gpd.GeoDataFrame(crs=gdf.crs)
+    for index, row in gdf.iterrows():
+        gdf1=gdf.loc[gdf.Filename!=row.Filename,]
+        overlaps = gdf1[gdf1.geometry.overlaps(row.geometry)]["Filename"].tolist()
+        if len(overlaps) > 0:
+            for y in overlaps:
+                # Tests for the intersection between individual rows.
+                intersection_area=gpd.overlay(gdf.loc[gdf.Filename==y,],gdf.loc[gdf.Filename==row.Filename,],how="intersection")
+                # Produces dataframe with one row, containing all information of both geometries which intersect. 
+                intersection_area=intersection_area.loc[intersection_area.geometry.area>=9e-9]
+                if intersection_area.shape[0] > 0: # Check to see if there is more than one row. 
+                    data_overlaps=gpd.GeoDataFrame(pd.concat([intersection_area,data_overlaps],ignore_index=True),crs=gdf.crs)
+                    data_overlaps['sorted']=data_overlaps.apply(lambda y: sorted([y["Filename_1"],y["Filename_2"]]),axis=1)
+                    data_overlaps['sorted']=data_overlaps.sorted.apply(lambda y: ''.join(y))
+                    data_overlaps=data_overlaps.drop_duplicates('sorted')
+                    data_overlaps=data_overlaps.reset_index()[['Filename_1','Filename_2','geometry']] # Final GeoDataFrame with all possible combinations of intersections.
+    data_overlaps.to_csv("test.csv")                
+    print(data_overlaps)
+    print(type(data_overlaps))
+    #sys.exit()
+    '''
+def heatmap(gdf):
+    # this plot is potentially possible where it must be done using point, therefore transfer pull all centroids from the polygons and look into geoplot.kdeplot
+    antarctica_mask = gpd.read_file("github_jhickson/SO-FRESH/05_filter/antartica_landmask.geojson")
+    f, ax = plt.subplots(1)
+    antarctica_mask.plot(ax=ax, facecolor="White", edgecolor="Black", linewidth=0.1)
+    #gdf.plot(ax=ax, cmap='PuBuGn', legend=True)
+    sns.kdeplot(data=gdf, fill=True, alpha=0.3, gridsize=200, levels=20, ax=ax)
+    #plt.imshow(antarctica_mask, interpolation='nearest')
+    plt.show()
+    #print(gdf)
+    
+
 
 
 def month_selector(csvfile):
@@ -66,7 +134,9 @@ if __name__ == "__main__":
         # Code:
         #----------------------------------------------------------------------------------------------------
         gdf = csv_2_gdf(args.input_csv)
-        print(gdf)
+        heatmap(gdf)
+        #overlap_check(gdf)
+        #print(gdf)
         
 
 
