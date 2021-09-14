@@ -12,6 +12,7 @@ import geopandas as gpd
 import os, sys
 from pathlib import Path
 from shapely.ops import unary_union
+from tqdm import tqdm
 #--------------------------------------------------------------------------------
 # Script description:
 #--------------------------------------------------------------------------------
@@ -37,9 +38,9 @@ def vectorize(mask):
     # See if the file already exists, if not, create it and if so, remove it and crete it.
     if os.path.exists(os.path.split(mask)[0] + "/06" + os.path.basename(os.path.splitext(mask)[0])[2:] + ".geojson"):
         os.remove(os.path.split(mask)[0] + "/06" + os.path.basename(os.path.splitext(mask)[0])[2:] + ".geojson")
-        os.system("gdal_polygonize.py %s %s -b 1 %s"%(mask, os.path.split(mask)[0] + "/06" + os.path.basename(os.path.splitext(mask)[0])[2:] + ".geojson", "/06" + os.path.basename(os.path.splitext(mask)[0])[2:]))
+        os.system("gdal_polygonize.py -q -f 'GeoJSON' %s %s -b 1 %s"%(mask, os.path.split(mask)[0] + "/06" + os.path.basename(os.path.splitext(mask)[0])[2:] + ".geojson", "/06" + os.path.basename(os.path.splitext(mask)[0])[2:]))
     else:
-        os.system("gdal_polygonize.py %s %s -b 1 %s"%(mask, os.path.split(mask)[0] + "/06" + os.path.basename(os.path.splitext(mask)[0])[2:] + ".geojson", "/06" + os.path.basename(os.path.splitext(mask)[0])[2:]))
+        os.system("gdal_polygonize.py -q -f 'GeoJSON' %s %s -b 1 %s"%(mask, os.path.split(mask)[0] + "/06" + os.path.basename(os.path.splitext(mask)[0])[2:] + ".geojson", "/06" + os.path.basename(os.path.splitext(mask)[0])[2:]))
 
     return(os.path.split(mask)[0] + "/06" + os.path.basename(os.path.splitext(mask)[0])[2:] + ".geojson")
 
@@ -54,14 +55,10 @@ def area_calculator(polygon):
         gdf.to_file(polygon, driver='GeoJSON')
 
 def selector(shapefile, mask):
-    # List of files
-    files = os.path.split(shapefile)[0].rsplit('/')
-    # The product in the file path - where to save the csv to.
-    product = ''.join(difflib.get_close_matches(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[1], files))
-    # Filepath reconstructed.
-    filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/"
-    # Read shapefile
-    gdf = gpd.read_file(shapefile)
+    files = os.path.split(shapefile)[0].rsplit('/') # List of files
+    product = ''.join(difflib.get_close_matches(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[1], files)) # The product in the file path - where to save the csv to.
+    filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/" # Filepath reconstructed.
+    gdf = gpd.read_file(shapefile) # Read shapefile
 
     #If the polygon intersects with the land mask - ignore.
     # If polygon is smaller than 200 km2 - ignore.
@@ -77,9 +74,9 @@ def selector(shapefile, mask):
     shapes_series = gpd.GeoSeries(union, crs=gdf.crs)
     # If the file is a 'MultiPolygon' the explode function splits it into individual polygons.
     exploded = shapes_series.explode()
-    #exploded.to_file(filename='test_v1.geojson', driver='GeoJSON')
+    anti_buffered = exploded.buffer(-0.75, join_style=2)
     outputlist = []
-    for geom, (index, row) in zip(exploded, (exploded.bounds.iterrows())):
+    for geom, (index, row) in zip(exploded, (anti_buffered.bounds.iterrows())):
         minx, miny, maxx, maxy = row[0], row[1], row[2], row[3]
         date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
         date.strftime("%Y-%m-%d")
@@ -177,7 +174,7 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
-        for img in args.input_img:
+        for img in tqdm(args.input_img):
             # Vectorize image.
             vector = vectorize(img)
             # Calculate area of polygons in shapefile.
