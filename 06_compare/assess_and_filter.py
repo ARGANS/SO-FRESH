@@ -6,6 +6,8 @@ from argcomplete.completers import ChoicesCompleter, FilesCompleter
 from collections import Counter
 import csv
 import geopandas as gpd
+import geoplot as gplt
+import geoplot.crs as gcrs
 from itertools import combinations
 import matplotlib.pyplot as plt
 import numpy as np
@@ -40,7 +42,12 @@ def csv_2_gdf(input_csv):
     gdf = gpd.GeoDataFrame(df, geometry = 'geometry')
     return(gdf)
 
+def centroid(gdf):
+    return(gdf.geometry.centroid)
+    
+
 def overlap_check(gdf):
+    '''
     i = 0
     j = 0
     for iterr in combinations(gdf.iterrows(), 2):
@@ -56,7 +63,7 @@ def overlap_check(gdf):
     crs =  pyproj.CRS.from_user_input("EPSG:4326")
     series = gpd.GeoSeries(iterr, crs=crs)
 
-    '''
+    
     for index, row in gdf.iterrows():
         print(row.geometry)
         sys.exit()
@@ -84,22 +91,35 @@ def overlap_check(gdf):
                     data_overlaps['sorted']=data_overlaps.sorted.apply(lambda y: ''.join(y))
                     data_overlaps=data_overlaps.drop_duplicates('sorted')
                     data_overlaps=data_overlaps.reset_index()[['Filename_1','Filename_2','geometry']] # Final GeoDataFrame with all possible combinations of intersections.
-    data_overlaps.to_csv("test.csv")                
+    data_overlaps.to_csv("test.csv")
     print(data_overlaps)
     print(type(data_overlaps))
     #sys.exit()
     '''
+
 def heatmap(gdf):
     # this plot is potentially possible where it must be done using point, therefore transfer pull all centroids from the polygons and look into geoplot.kdeplot
-    antarctica_mask = gpd.read_file("github_jhickson/SO-FRESH/05_filter/antartica_landmask.geojson")
-    f, ax = plt.subplots(1)
-    antarctica_mask.plot(ax=ax, facecolor="White", edgecolor="Black", linewidth=0.1)
-    #gdf.plot(ax=ax, cmap='PuBuGn', legend=True)
-    sns.kdeplot(data=gdf, fill=True, alpha=0.3, gridsize=200, levels=20, ax=ax)
-    #plt.imshow(antarctica_mask, interpolation='nearest')
-    plt.show()
-    #print(gdf)
+    antarctica_mask = gpd.read_file("github_jhickson/SO-FRESH/05_filter/antartica_landmask.geojson")[['geometry']]
+    polynyas = centroid(gdf)
+    polynya_quan = gdf["Number of Polygons"]
+   
+
     
+    '''
+    # WORKING
+    ax = gplt.polyplot(antarctica_mask, projection=gcrs.PlateCarree(), facecolor="White", edgecolor="Black", linewidth=0.1)
+    gplt.kdeplot(polynyas, ax=ax, cmap='Reds', shade=True, shade_lowest=True, extent=antarctica_mask.total_bounds)
+    plt.show()
+    '''
+
+    ax = gplt.polyplot(antarctica_mask, projection=gcrs.PlateCarree(), facecolor="White", edgecolor="Black", linewidth=0.1, zorder=1)
+    gplt.kdeplot(polynyas, ax=ax, cmap='Reds', shade=True, shade_lowest=True, extent=antarctica_mask.total_bounds)
+    #plt.legend(handles=[min(polynya_quan), max(polynya_quan)], labels=['min', 'max']) 
+    #colorbar(label='Quantity of polynyas identified.')
+
+    plt.show()
+
+
 
 
 
@@ -134,6 +154,7 @@ if __name__ == "__main__":
         # Code:
         #----------------------------------------------------------------------------------------------------
         gdf = csv_2_gdf(args.input_csv)
+        centroid(gdf)
         heatmap(gdf)
         #overlap_check(gdf)
         #print(gdf)
