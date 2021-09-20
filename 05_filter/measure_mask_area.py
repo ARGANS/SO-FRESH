@@ -63,15 +63,15 @@ def selector(shapefile, mask):
     #If the polygon intersects with the land mask - ignore.
     # If polygon is smaller than 200 km2 - ignore.
     for index, row in gdf.iterrows():
-        if row["geometry"].intersects(mask) or not row["Area"] > 200:
+        if row["geometry"].intersects(mask) or row["Area"] > 85000 or not row["Area"] > 200:
             gdf.drop(index, inplace=True)
-
     # Buffer the bounding box of the polygons.
     gdf_buffered = gdf.envelope.buffer(0.75, join_style=2)
     # Union all those that overlap.
     union = gdf_buffered.unary_union
     # Turn the union in to a GeoSeries.
     shapes_series = gpd.GeoSeries(union, crs=gdf.crs)
+    
     # If the file is a 'MultiPolygon' the explode function splits it into individual polygons.
     exploded = shapes_series.explode()
     anti_buffered = exploded.buffer(-0.75, join_style=2)
