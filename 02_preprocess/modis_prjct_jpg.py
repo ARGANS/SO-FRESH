@@ -4,12 +4,14 @@
 import argcomplete, argparse
 from argcomplete.completers import ChoicesCompleter, FilesCompleter
 import gdal
+import glob
 import sys, os
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
 import pandas as pd
 import osr
+from tqdm import tqdm
 
 #--------------------------------------------------------------------------------
 # Script description:
@@ -28,8 +30,8 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 # Functions:
 #----------------------------------------------------------------------------------------------------
 def modis_extract_geom(input, coords):
-    # Extract geometry from the sinusoidal tiles reference based on those reference in the filename.
-    if os.path.basename(input)[27] == 'h' and os.path.basename(input)[30] == 'v':
+    # Extract geometry from the sinusoidal tiles reference based on those reference in the filename. 
+    if os.path.basename(input).rsplit(".", 7)[3][0] == 'h' and os.path.basename(input).rsplit(".", 7)[3][3] == 'v':
         h, v = os.path.basename(input)[28:-27], os.path.basename(input)[31:-24]
     else:
         raise RuntimeError("The filename does not match up.")
@@ -94,8 +96,10 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
-        for img in args.input_img:
+        print(f"Reprojecting {len(args.input_img)} images.")
+        for img in tqdm(args.input_img):
             modis_jpg2tif(img, os.path.split(img)[0] + "/02" + os.path.basename(os.path.splitext(img)[0])[2:] + ".tif", 4326, modis_extract_geom(img, os.path.split(__file__)[0]+"/modis_sinusoidal_tiles.csv"))
+        print("Process complete - all images projected.")
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------

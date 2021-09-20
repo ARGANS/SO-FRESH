@@ -59,7 +59,7 @@ def selector(shapefile, mask):
     product = ''.join(difflib.get_close_matches(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[1], files)) # The product in the file path - where to save the csv to.
     filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/" # Filepath reconstructed.
     gdf = gpd.read_file(shapefile) # Read shapefile
-
+   
     #If the polygon intersects with the land mask - ignore.
     # If polygon is smaller than 200 km2 - ignore.
     for index, row in gdf.iterrows():
@@ -174,6 +174,7 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
+        print(f"Examining the criteria of {len(args.input_img)} masks and appending those which fit to CSV.")
         for img in tqdm(args.input_img):
             # Vectorize image.
             vector = vectorize(img)
@@ -185,6 +186,7 @@ if __name__ == "__main__":
             append_by_year = append_data_by_year(img, select)
             # For files which pass - save them to the csv by month in corresponding year folders.
             append_by_month = append_data_by_month(img, select)
+        print("Process complete.")
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------

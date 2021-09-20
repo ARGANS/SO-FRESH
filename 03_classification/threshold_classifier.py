@@ -10,6 +10,7 @@ import matplotlib.image as mpimg
 import numpy as np
 import pandas as pd
 import osr
+from tqdm import tqdm
 #--------------------------------------------------------------------------------
 # Script description:
 #--------------------------------------------------------------------------------
@@ -26,8 +27,8 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 #----------------------------------------------------------------------------------------------------
 def threshold_classify(input, output, threshold):
     tmpout = output[:-4] + "thresholdtmp.tif"
-    os.system("gdal_calc.py -A %s --allBands=A --outfile=%s --calc='A<=%s' --overwrite"%(input, tmpout, threshold))
-    os.system("gdal_translate -b 1 %s %s"%(tmpout, output))
+    os.system("gdal_calc.py --quiet -A %s --allBands=A --outfile=%s --calc='A<=%s' --overwrite"%(input, tmpout, threshold))
+    os.system("gdal_translate -q -b 1 %s %s"%(tmpout, output))
     os.remove(tmpout)
 
 def img_viewer(input):
@@ -54,9 +55,10 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
-        for img in args.input_img:
+        print(f"Undertaking threshold classification for {len(args.input_img)} images")
+        for img in tqdm(args.input_img):
             threshold_classify(img, os.path.split(img)[0] + "/03" + os.path.basename(os.path.splitext(img)[0])[2:] + "_threshold_" + str(args.threshold) + ".tif", args.threshold)
-
+        print("Process complete - threshold classifications produced")
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------

@@ -9,6 +9,7 @@ import scipy.ndimage.morphology as morpho
 import gdal
 import rasterio
 import sys, os
+from tqdm import tqdm
 
 #--------------------------------------------------------------------------------
 # Script description:
@@ -41,7 +42,7 @@ def erosion_dialation(array, eroded_output):
     # Set structure - on how the array is being checked.
     structure = ndimage.generate_binary_structure(2, 2)
     # Erode, dialate and erode again.
-    print(f"Eroding & dilating {os.path.split(input)[1]}...")
+    #print(f"Eroding & dilating {os.path.split(input)[1]}...")
     array_mod = morpho.binary_erosion(array_mod, structure=structure, iterations=1, border_value=0)
     array_mod = morpho.binary_dilation(array_mod, structure=structure, iterations=2, border_value=0)
     array_mod = morpho.binary_erosion(array_mod, structure=structure, iterations=1, border_value=0)
@@ -73,7 +74,8 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
-        for input in args.input_img:
+        print(f"Generating heatmap and eroded and dilated mask for {len(args.input_img)} images.")
+        for input in tqdm(args.input_img):
             # Read image
             with rasterio.open(input, 'r') as threshold_class:
                 threshold_array = threshold_class.read(1)
@@ -89,7 +91,7 @@ if __name__ == "__main__":
             
             # Erode and dialate the heatmap.
             erosion_dialation(window_filter, os.path.split(input)[0] + "/05" + os.path.basename(os.path.splitext(input)[0])[2:] + "_heatmap_eroded.tif")
-            
+        print("Process complete - heatmap and masks produced.")
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
