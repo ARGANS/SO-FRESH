@@ -71,7 +71,6 @@ def selector(shapefile, mask):
     union = gdf_buffered.unary_union
     # Turn the union in to a GeoSeries.
     shapes_series = gpd.GeoSeries(union, crs=gdf.crs)
-    
     # If the file is a 'MultiPolygon' the explode function splits it into individual polygons.
     exploded = shapes_series.explode()
     anti_buffered = exploded.buffer(-0.75, join_style=2)

@@ -3,11 +3,16 @@
 
 import argcomplete, argparse
 from argcomplete.completers import ChoicesCompleter, FilesCompleter
+import cartopy.crs as ccrs
 from collections import Counter
 import csv
+from datetime import datetime  
+from datetime import timedelta
+from functools import reduce
 import geopandas as gpd
 import geoplot as gplt
 import geoplot.crs as gcrs
+import itertools
 from itertools import combinations
 import matplotlib.pyplot as plt
 import numpy as np
@@ -39,7 +44,7 @@ def csv_2_gdf(input_csv):
     # Read csv to pandas dataframe, and applying the geometry column to give coordinates in the WKT format. 
     df = pd.read_csv(input_csv)
     df['geometry'] = df['geometry'].apply(wkt.loads)
-    gdf = gpd.GeoDataFrame(df, geometry = 'geometry')
+    gdf = gpd.GeoDataFrame(df, geometry="geometry", crs=4326)
     return(gdf)
 
 def centroid(gdf):
@@ -47,6 +52,54 @@ def centroid(gdf):
     
 
 def overlap_check(gdf):
+    max_gdf_date = datetime.strptime(max(gdf["Date"]), "%Y-%m-%d")
+    delta = max_gdf_date - datetime.strptime(min(gdf["Date"]), "%Y-%m-%d")
+    i = 0
+    j = 13
+    intersect_gdf = gpd.GeoDataFrame(columns=["Start Date", "End Date", "geometry"], crs=gdf.crs)
+    for days in range(delta.days)[:3]:
+        date_start = datetime.strptime(min(gdf["Date"]), "%Y-%m-%d") + timedelta(days=i)
+        date_end = datetime.strptime(min(gdf["Date"]), "%Y-%m-%d") + timedelta(days=j)
+        if not date_end == max_gdf_date:
+            i = i + 1
+            j = j + 1
+            date_range_gdf = gdf[gdf["Date"].between(str(date_start), str(date_end))]
+            '''
+            data = []
+            for index1, row1 in date_range_gdf.iterrows():
+                for index2, row2 in date_range_gdf.iterrows():
+                    if row1["geometry"].intersects(row2["geometry"]):
+                        #owdspd=row2['id']
+                        data.append({'geometry':row1['geometry'].intersection(row2['geometry'])})
+            df = gpd.GeoDataFrame(data, columns=["geometry"])
+            df.to_file("intersection_test.json", driver="GeoJSON")
+            sys.exit()
+            '''
+            
+            overlay = gpd.overlay(date_range_gdf, date_range_gdf, how="intersection", keep_geom_type=False)
+            
+            #matching_filename_indexes = overlay[overlay["Filename_1"] == overlay["Filename_2"]].index
+            
+
+            matching_minmax_xy = overlay[(overlay["Filename_1"] == overlay["Filename_2"]) & 
+                                        (overlay["minx_1"] == overlay["minx_2"]) & 
+                                        (overlay["miny_1"] == overlay["miny_2"]) & 
+                                        (overlay["maxx_1"] == overlay["maxx_2"]) & 
+                                        (overlay["maxy_1"] == overlay["maxy_2"])].index
+            overlay.drop(matching_minmax_xy, inplace=True)
+            overlay.to_file(f"test_overlay_{str(i)}.json", driver="GeoJSON")
+
+            union = overlay.unary_union
+            shapes_series = gpd.GeoSeries(union, crs=gdf.crs)
+            print(shapes_series)
+
+            shapes_series.to_file(f"test_union_{str(i)}.json", driver="GeoJSON")
+
+            #intersect_gdf.append([date_start, date_end, mp], ignore_index=True)
+    
+    sys.exit()
+    
+    
     '''
     i = 0
     j = 0
@@ -98,29 +151,34 @@ def overlap_check(gdf):
     '''
 
 def heatmap(gdf):
-    # this plot is potentially possible where it must be done using point, therefore transfer pull all centroids from the polygons and look into geoplot.kdeplot
     antarctica_mask = gpd.read_file("github_jhickson/SO-FRESH/05_filter/antartica_landmask.geojson")[['geometry']]
-    polynyas = centroid(gdf)
-    polynya_quan = gdf["Number of Polygons"]
-   
-
     
-    '''
-    # WORKING
-    ax = gplt.polyplot(antarctica_mask, projection=gcrs.PlateCarree(), facecolor="White", edgecolor="Black", linewidth=0.1)
-    gplt.kdeplot(polynyas, ax=ax, cmap='Reds', shade=True, shade_lowest=True, extent=antarctica_mask.total_bounds)
-    plt.show()
-    '''
+    # Add date range.
+    #####################################################################
+    gdf = gdf[gdf["Date"].between("2017-09-01", "2017-11-30")]
+    #print(gdf)
+    #gdf = gdf[gdf["Tile"].between("h14v15", "h24v15")]
+    #print(gdf)
+    
+    #####################################################################
+    # Rather than a KDE plot, could a sns.jointplot be used, where the localities are specified on a map, and the frequency is displayed on the X and Y axis
 
+
+    # This produces a plot of kernel density across the whole region.
     ax = gplt.polyplot(antarctica_mask, projection=gcrs.PlateCarree(), facecolor="White", edgecolor="Black", linewidth=0.1, zorder=1)
-    gplt.kdeplot(polynyas, ax=ax, cmap='Reds', shade=True, shade_lowest=True, extent=antarctica_mask.total_bounds)
-    #plt.legend(handles=[min(polynya_quan), max(polynya_quan)], labels=['min', 'max']) 
-    #colorbar(label='Quantity of polynyas identified.')
-
+    polynyas = centroid(gdf)
+    gplt.kdeplot(polynyas, ax=ax, cmap='cividis', shade=True, thresh=0, extent=gdf['geometry'].total_bounds)
+    #gplt.pointplot(polynyas, ax=ax, extent=antarctica_mask.total_bounds)
+    ax.set(xlabel="Longitude (degrees)", ylabel="Latitude (degrees)")
+    gridliner = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='--')
+    gridliner.ylabels_left = False
+    gridliner.xlabels_top = False
     plt.show()
-
-
-
+    
+    tiles = gdf["Tile"].unique()
+    print(tiles)
+    centroid_list = []
+    
 
 
 def month_selector(csvfile):
@@ -154,7 +212,7 @@ if __name__ == "__main__":
         # Code:
         #----------------------------------------------------------------------------------------------------
         gdf = csv_2_gdf(args.input_csv)
-        centroid(gdf)
+        #centroid(gdf)
         heatmap(gdf)
         #overlap_check(gdf)
         #print(gdf)
