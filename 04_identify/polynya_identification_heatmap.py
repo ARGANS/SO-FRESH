@@ -11,6 +11,8 @@ import rasterio
 import sys, os
 from tqdm import tqdm
 
+from rasterio.windows import Window
+
 #--------------------------------------------------------------------------------
 # Script description:
 #--------------------------------------------------------------------------------
@@ -50,6 +52,12 @@ def erosion_dialation(array, eroded_output):
     # Select the appropriate data.
     array_mod = np.where(array_mod,1,0)
     array_mod = np.array(array_mod, dtype=np.uint8)
+    
+    # The output needs to be the same shape an locality as the input, i.e. shape = 240,240. 
+    # This may be possible to be done saving the image with gdal over rasterio.
+    print(max(array_mod))
+    print(array_mod.shape)
+    sys.exit()
     with rasterio.open(eroded_output, 'w', **profile) as imgout:
         imgout.write(array_mod, 1)
         
