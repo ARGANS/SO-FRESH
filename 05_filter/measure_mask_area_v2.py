@@ -84,9 +84,11 @@ def filter(shapefile, mask):
     return outputlist, trimmed_shp
 
 def mask(shapefile, img):
-    xmin, xpixel, _, ymax, _, ypixel = gdal.Open(img).GetGeoTransform() 
-    os.system("gdalwarp -q -overwrite --config GDALWARP_IGNORE_BAD_CUTLINE YES -of GTiff -tr %s %s -tap -cutline %s -cl %s -crop_to_cutline %s %s"%(xpixel, ypixel, shapefile, os.path.splitext(os.path.basename(shapefile))[0], img, os.path.split(img)[0] + "/08" + os.path.basename(os.path.splitext(shapefile)[0])[2:] + "_masked.tif"))
+    xmin, xpixel, _, ymax, _, ypixel = gdal.Open(img).GetGeoTransform()
+    xmax = xmin + xpixel * gdal.Open(img).RasterXSize
+    ymin = ymax + ypixel * gdal.Open(img).RasterYSize
 
+    os.system("gdalwarp -q -overwrite --config GDALWARP_IGNORE_BAD_CUTLINE YES -of GTiff -te %s %s %s %s -tr %s %s -tap -cutline %s -cl %s %s %s"%(xmin, ymin, xmax, ymax, xpixel, ypixel, shapefile, os.path.splitext(os.path.basename(shapefile))[0], img, os.path.split(img)[0] + "/08" + os.path.basename(os.path.splitext(shapefile)[0])[2:] + "_masked.tif"))
 
 
 def append_data_by_year(img, info):
