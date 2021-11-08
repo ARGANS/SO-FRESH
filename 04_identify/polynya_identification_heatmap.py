@@ -6,6 +6,7 @@ from argcomplete.completers import ChoicesCompleter, FilesCompleter
 import numpy as np
 import scipy.ndimage as ndimage
 import scipy.ndimage.morphology as morpho
+from skimage import morphology
 import gdal
 import rasterio
 import sys, os
@@ -55,12 +56,22 @@ def erosion_dialation(array, eroded_output):
     
     # The output needs to be the same shape an locality as the input, i.e. shape = 240,240. 
     # This may be possible to be done saving the image with gdal over rasterio.
-    print(max(array_mod))
-    print(array_mod.shape)
-    sys.exit()
+    
     with rasterio.open(eroded_output, 'w', **profile) as imgout:
         imgout.write(array_mod, 1)
         
+def noise_removal(array, eroded_output):
+    # Create an array of zeroes and another of ones.
+    arrZero, arrOne = np.zeros(array.shape, dtype=bool), np.ones(array.shape, dtype=bool)
+    # Where the array has a value more than 5 make the arrOne = True, and everywhere else (False) = arrZero.
+    array_mod = np.where(array>5, arrOne, arrZero)
+    array_erode = morphology.remove_small_objects(array_mod, 3, connectivity=2)
+
+    outDataset = gdal.GetDriverByName("GTiff").Create(eroded_output, cols, rows, 1, gdal.GDT_Float32)
+    outDataset.SetProjection(proj)
+    outDataset.SetGeoTransform(geom)
+    outBand = outDataset.GetRasterBand(1)
+    outBand.WriteArray(array_erode) 
 
 #==========================================================
 # main:
@@ -97,8 +108,14 @@ if __name__ == "__main__":
             with rasterio.open(heatmap_output, 'w', **profile) as h_output:
                 h_output.write(window_filter, 1)
             
+            cols = gdal.Open(input).RasterXSize
+            rows = gdal.Open(input).RasterYSize
+            proj = gdal.Open(input).GetProjection()
+            geom = gdal.Open(input).GetGeoTransform()
             # Erode and dialate the heatmap.
-            erosion_dialation(window_filter, os.path.split(input)[0] + "/05" + os.path.basename(os.path.splitext(input)[0])[2:] + "_heatmap_eroded.tif")
+            #erosion_dialation(window_filter, os.path.split(input)[0] + "/05" + os.path.basename(os.path.splitext(input)[0])[2:] + "_heatmap_eroded.tif")
+            # Noise removal from the heatmap.
+            noise_removal(window_filter, os.path.split(input)[0] + "/05" + os.path.basename(os.path.splitext(input)[0])[2:] + "_heatmap_eroded.tif")
         print("Process complete - heatmap and masks produced.")
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
