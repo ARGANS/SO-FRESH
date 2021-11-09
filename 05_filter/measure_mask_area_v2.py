@@ -59,29 +59,37 @@ def filter(shapefile, mask):
     product = ''.join(difflib.get_close_matches(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[1], files)) # The product in the file path - where to save the csv to.
     filepath = '/'.join(files[0:files.index(product)]) + "/" + product + "/" # Filepath reconstructed.
     gdf = gpd.read_file(shapefile) # Read shapefile
-   
-    #If the polygon intersects with the land mask - ignore.
-    # If polygon is smaller than 200 km2 - ignore.
-    for index, row in gdf.iterrows():
-        if row["geometry"].intersects(mask) or row["Area"] > 85000 or not row["Area"] > 200:
-            gdf.drop(index, inplace=True)
-
-    trimmed_shp = os.path.split(shapefile)[0] + "/07" + os.path.basename(os.path.splitext(shapefile)[0])[2:] + "_criteria.geojson"
-    gdf.to_file(trimmed_shp, driver="GeoJSON")
     
-    outputlist = []
-    # Extract required information. 
-    for area, geometry in zip(gdf["Area"], gdf["geometry"]):
-        date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
-        date.strftime("%Y-%m-%d")
-        doy = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:][4:]
-        year = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:][:-3]
-        tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
+    if not gdf.empty:
+        #If the polygon intersects with the land mask - ignore.
+        # If polygon is smaller than 200 km2 - ignore.
+        for index, row in gdf.iterrows():
+            if row["geometry"].intersects(mask) or row["Area"] > 85000 or not row["Area"] > 200:
+                gdf.drop(index, inplace=True)
+
+        trimmed_shp = os.path.split(shapefile)[0] + "/07" + os.path.basename(os.path.splitext(shapefile)[0])[2:] + "_criteria.geojson"
+        if os.path.exists(trimmed_shp):
+            os.remove(trimmed_shp)
+            gdf.to_file(trimmed_shp, driver="GeoJSON")
+        else:
+            gdf.to_file(trimmed_shp, driver="GeoJSON")
         
-        outputlist.append([date, doy, year, geometry, area, tile])
-    else:
+        
+        outputlist = []
+        # Extract required information. 
+        for area, geometry in zip(gdf["Area"], gdf["geometry"]):
+            date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
+            date.strftime("%Y-%m-%d")
+            doy = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:][4:]
+            year = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:][:-3]
+            tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
+            
+            outputlist.append([date, doy, year, geometry, area, tile])
+        else:
+            pass
+        return outputlist, trimmed_shp
+    else: 
         pass
-    return outputlist, trimmed_shp
 
 def mask(shapefile, img):
     xmin, xpixel, _, ymax, _, ypixel = gdal.Open(img).GetGeoTransform()
@@ -184,7 +192,9 @@ if __name__ == "__main__":
             # Selects those which fit in the criteria (i.e. area <= 200km2 and do not intersect land mask).
             criteria = filter(vector, antarctica_mask)
             # Remove areas which have not fit the criteria by masking them out of the vector files.
-            masking = mask(criteria[1], img)
+            if not criteria == None:masking = mask(criteria[1], img)
+            else:pass
+            
             # For files which pass - save them to the csv by year.
             #append_by_year = append_data_by_year(img, select)
             # For files which pass - save them to the csv by month in corresponding year folders.
