@@ -66,36 +66,38 @@ def filter(shapefile, mask):
         for index, row in gdf.iterrows():
             if row["geometry"].intersects(mask) or row["Area"] > 85000 or not row["Area"] > 200:
                 gdf.drop(index, inplace=True)
-
-        trimmed_shp = os.path.split(shapefile)[0] + "/07" + os.path.basename(os.path.splitext(shapefile)[0])[2:] + "_criteria.geojson"
-        if os.path.exists(trimmed_shp):
-            os.remove(trimmed_shp)
-            gdf.to_file(trimmed_shp, driver="GeoJSON")
-        else:
-            gdf.to_file(trimmed_shp, driver="GeoJSON")
-        
-        
-        outputlist = []
-        # Extract required information. 
-        for area, geometry in zip(gdf["Area"], gdf["geometry"]):
-            date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
-            date.strftime("%Y-%m-%d")
-            doy = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:][4:]
-            year = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:][:-3]
-            tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
+        if not gdf.empty:
+            trimmed_shp = os.path.split(shapefile)[0] + "/07" + os.path.basename(os.path.splitext(shapefile)[0])[2:] + "_criteria.geojson"
+            if os.path.exists(trimmed_shp):
+                os.remove(trimmed_shp)
+                gdf.to_file(trimmed_shp, driver="GeoJSON")
+            else:
+                gdf.to_file(trimmed_shp, driver="GeoJSON")
             
-            outputlist.append([date, doy, year, geometry, area, tile])
+            
+            outputlist = []
+            # Extract required information. 
+            for area, geometry in zip(gdf["Area"], gdf["geometry"]):
+                date = datetime.strptime(os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:], "%Y%j").date()
+                date.strftime("%Y-%m-%d")
+                doy = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:][4:]
+                year = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[2][1:][:-3]
+                tile = os.path.split(shapefile)[1].rsplit('_', 4)[0].rsplit('.', 7)[3]
+                
+                outputlist.append([date, doy, year, geometry, area, tile])
+            else:
+                pass
+            return outputlist, trimmed_shp
         else:
             pass
-        return outputlist, trimmed_shp
     else: 
         pass
+    
 
 def mask(shapefile, img):
     xmin, xpixel, _, ymax, _, ypixel = gdal.Open(img).GetGeoTransform()
     xmax = xmin + xpixel * gdal.Open(img).RasterXSize
     ymin = ymax + ypixel * gdal.Open(img).RasterYSize
-
     os.system("gdalwarp -q -overwrite --config GDALWARP_IGNORE_BAD_CUTLINE YES -of GTiff -te %s %s %s %s -tr %s %s -tap -cutline %s -cl %s %s %s"%(xmin, ymin, xmax, ymax, xpixel, ypixel, shapefile, os.path.splitext(os.path.basename(shapefile))[0], img, os.path.split(img)[0] + "/08" + os.path.basename(os.path.splitext(shapefile)[0])[2:] + "_masked.tif"))
 
 
@@ -190,7 +192,8 @@ if __name__ == "__main__":
             # Calculate area of polygons in shapefile.
             area = area_calculator(vector)
             # Selects those which fit in the criteria (i.e. area <= 200km2 and do not intersect land mask).
-            criteria = filter(vector, antarctica_mask)
+            if os.path.isfile(vector):
+                criteria = filter(vector, antarctica_mask)
             # Remove areas which have not fit the criteria by masking them out of the vector files.
             if not criteria == None:masking = mask(criteria[1], img)
             else:pass
