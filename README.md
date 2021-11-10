@@ -29,7 +29,6 @@ This is the development stage of the Automated Polynya Identification Tool (APIT
     * Line 97 - The final value is the tile of interest - this should be modified based on v tile of interest.
 <details>
 
-<details>
     <summary>1.2 DAAC_data_download.py</summary>
 
     | Inputs        | Shorthand     | What is it?  |
@@ -49,7 +48,7 @@ This is the development stage of the Automated Polynya Identification Tool (APIT
     login jhickson
     password password123
     ```
-<details>
+
 <details>
 
 ***
