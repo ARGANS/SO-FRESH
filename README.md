@@ -47,7 +47,6 @@ This is the development stage of the Automated Polynya Identification Tool (APIT
     login jhickson
     password password123
     ```
-
 </details>
 
 ***
