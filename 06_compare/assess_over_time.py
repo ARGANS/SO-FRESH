@@ -13,22 +13,28 @@ import sys, os, glob
 # Script description:
 #--------------------------------------------------------------------------------
 parser = argparse.ArgumentParser(description="""
-#
+# Specified date range enables the assessment of open-water appearance frequency over the same location.
 **************************************************************************
 ##Tasks:
--
--
--
+- Open images from within specified date range where criterias have previously been passed.
+- Stack arrays of images and generate a cumulative sum layer of all layers.
+- Upon script completion, information is printed including date range, number of days, available images and the maximum value acquired from the stacked array.
 **************************************************************************""",
 formatter_class=argparse.RawDescriptionHelpFormatter)
 
 #----------------------------------------------------------------------------------------------------
 # Functions:
 #----------------------------------------------------------------------------------------------------
-def img_to_array(img):
-    return (gdal.Open(img).ReadAsArray())
-    
-
+def array_to_img(in_img, output_img):
+    cols = gdal.Open(in_img).RasterXSize
+    rows = gdal.Open(in_img).RasterYSize
+    proj = gdal.Open(in_img).GetProjection()
+    geom = gdal.Open(in_img).GetGeoTransform()
+    outDataset = gdal.GetDriverByName("GTiff").Create(output_img, cols, rows, 1, gdal.GDT_Float32)
+    outDataset.SetProjection(proj)
+    outDataset.SetGeoTransform(geom)
+    outBand = outDataset.GetRasterBand(1)
+    outBand.WriteArray(cumulative_array)
 #==========================================================
 # main:
 #----------------------------------------------------------
@@ -37,33 +43,37 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Arguments:
         #----------------------------------------------------------------------------------------------------
-        parser.add_argument("-i", "--input-img", nargs="+", help="").completer = FilesCompleter(allowednames=(".tif"))
-        parser.add_argument("-d", "--days", type=int, help="Number of days to look at from input image.")
-        parser.add_argument("-t", "--tile", help="Filepath to MODIS tile of interest.")
         parser.add_argument("-s", "--time-start", help="Time lower bound (YYYY/MM/DD)")
+        parser.add_argument("-t", "--tile", help="Filepath to MODIS tile of interest.")
+        parser.add_argument("-d", "--days", type=int, help="Number of days to look at from input image.")
         parser.add_argument("-e", "--time-end", help="Time upper bound (YYYY/MM/DD)")
+        parser.add_argument("-save", "--save", action="store_true", help="Include if you would like to save the image to current directory with outputfile named 'h**v**_YYYYMMDD_YYYYMMDD.tif'.")
+        parser.add_argument("-o", "--output-img", help="Save image to specified files path with specified name.")
+
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
 
         #----------------------------------------------------------------------------------------------------
         # Check for Errors:
         #----------------------------------------------------------------------------------------------------
-        #if args.tile ends with '/' remove it!
-        # time-end or days must be specified!
-        #make sure date is split with "/" or if it is as '-' then change it?
+        # Ensure tile filepath ends correctly.
+        if args.tile[-1] == "/":args.tile = args.tile[:-1]
+        else:pass
+        # Make sure either number of days or end date is specified. 
+        if args.days == None and args.time_end == None:raise RuntimeError("Either the number of days ('-d') or an end date ('-time-end') must be specified.")
+        # Make sure date format is all coorectly laid out. 
+        if not (args.time_start[4] == "/" and args.time_start[-3] == "/"):raise RuntimeError("Start date format must be 'YYYY/MM/DD'.")
+        if not args.time_end == None:
+            if not (args.time_end[4] == "/" and args.time_end[-3] == "/"):raise RuntimeError("End date format must be 'YYYY/MM/DD'.")
+        
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
         tile = args.tile
         sdate = datetime.strptime(os.path.join(args.time_start), "%Y/%m/%d").date()
         # End date based on specified or calculated from the start date from the number of days. 
-        if args.time_end:
-            edate = datetime.strptime(os.path.join(args.time_end), "%Y/%m/%d").date()
-        elif args.days:
-            edate = sdate + timedelta(days=args.days)
-        #else:
-        #    raise RuntimeError("Please specify either an end-date using '-e' or a number of days from the start date using '-d'.")
-
+        if args.time_end:edate = datetime.strptime(os.path.join(args.time_end), "%Y/%m/%d").date()
+        elif args.days:edate = sdate + timedelta(days=args.days)
         # Acquire list of all the dates.
         date_list = [sdate + timedelta(days=x) for x in range((edate-sdate).days + 1)]
         # Full directory (including tile & date).
@@ -74,63 +84,24 @@ if __name__ == "__main__":
         array = np.array([np.array(Image.open(fimg)) for fimg in full_filepath])
         cumulative_array = np.sum(np.stack(array), axis=0)
         
-        print(array.shape)
-        sys.exit()
 
-        
-        
-        
-        print(tile)
-        print(time_start)
-        print(time_end)
-        print("".join((tile, time_start)))
-        sys.exit()
-        
-        for img in args.input_img:
-            # Split path to get date.
-            path_split = os.path.split(img)[0].rsplit('/')
-            # Extract components of date to be fed into datetime. 
-            day, month, year = path_split[-1], path_split[-2], path_split[-3]
-            # Filepath to the tile which is being investigated.
-            tile_filepath = "/".join(path_split[0:-3])
-            
-            # Acquire date range.            
-            start_date = datetime.strptime(os.path.join(year,month,day), "%Y/%m/%d").date()
-            end_date = start_date + timedelta(days=args.days)
-            # Acquire list of all the dates.
-            date_list = [start_date + timedelta(days=x) for x in range((end_date-start_date).days + 1)]
-            # Generate filepaths for all the dates.
-            dir_date_list = ["/".join((tile_filepath, str(d.year), str('%02d' %d.month), str('%02d' %d.day))) for d in date_list if os.path.exists("/".join((tile_filepath, str(d.year), str('%02d' %d.month), str('%02d' %d.day))))]
-            # Pull files for all dates.     
-            files_date_list = [files for dir in dir_date_list for files in glob.glob(os.path.join(dir, "08*.tif"))]
-            
-            array = np.array([np.array(Image.open(fimg)) for fimg in files_date_list])
-            cumulative_array = np.sum(np.stack(array), axis=0)
-            print(array.shape)
-            sys.exit()
-            
+        # If speecified, save image.
+        if args.save == True and bool(args.output_img) == True:
+            raise RuntimeError("Please include either '-save' or '-o' based on where you would like to save the output.")
+        elif args.save == True:
+            outfile = "_".join((os.path.split(tile)[1], "".join((str(sdate.year), str('%02d' %sdate.month), str('%02d' %sdate.day))), "".join((str(edate.year), str('%02d' %edate.month), str('%02d' %edate.day))))) + ".tif"
+            array_to_img(full_filepath[0], outfile)  
+        elif bool(args.output_img) == True:
+            array_to_img(full_filepath[0], args.output_img)
 
-
-
-            # write to image for viewing purposes
-            cols = gdal.Open(img).RasterXSize
-            rows = gdal.Open(img).RasterYSize
-            proj = gdal.Open(img).GetProjection()
-            geom = gdal.Open(img).GetGeoTransform()
-
-            outDataset = gdal.GetDriverByName("GTiff").Create("test.tif", cols, rows, 1, gdal.GDT_Float32)
-            outDataset.SetProjection(proj)
-            outDataset.SetGeoTransform(geom)
-            outBand = outDataset.GetRasterBand(1)
-            outBand.WriteArray(cumulative_array) 
-            
-            sys.exit()
-            
-                    
-            
-            sys.exit()
-            #array = img_to_array(img)
-            #print(array)
+        print("Based on specified criteria:")
+        print(f"    Date range:                 {sdate} - {edate}")
+        if bool(args.days) == True:
+            print(f"    Range between dates:        {args.days} days")
+        elif bool(args.time_end) == True:
+            print(f"    Range between dates:        {(edate-sdate).days} days")
+        print(f"    Number of available images: {len(full_filepath)}")
+        print(f"    Maximum pixel overlap:      {int(np.amax(cumulative_array))}")
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
