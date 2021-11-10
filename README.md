@@ -18,6 +18,32 @@ The product used for this tool is MODIS MYD09GA, where images of each MODIS tile
 | outpath       |       -o      |    Path to where the textfile is saved. |
 | version       |       -v      |    MODIS data version (006 or 061). |
 
+###### Example:
+```python
+python SO-FRESH/01_download/extract_urls.py -s 2017-01-01 -e 2017-12-31 -o download_text/ -v 006
+```
+###### Extra information:
+* Line 97 - The final value is the tile of interest - this should be modified based on v tile of interest.
+
+### DAAC_data_download.py
+| Inputs        | Shorthand     | What is it?  |
+| ------------- |:-------------:| ------------:|
+| directory     |       -dir      | Specification of output directory. |
+| files       |       -f      | Filepath to textfile created in previous step. |
+
+###### Example:
+```python
+python SO-FRESH/01_download/DAAC_data_download.py -dir download_imagery/ -f download_text/imagery.txt
+```
+###### Extra information:
+* Source: https://git.earthdata.nasa.gov/projects/LPDUR/repos/daac_data_download_python/browse
+* Login details are required in the '.netrc' file in the following format:
+```python 
+machine urs.earthdata.nasa.gov
+login jhickson
+password password123
+```
+
 ## 02_preprocess
 
 ## 03_classification
