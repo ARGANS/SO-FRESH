@@ -1,29 +1,31 @@
 This is the development stage of the Automated Polynya Identification Tool (APIT) v1, using MODIS (MYD09GA) data. Information surrounding this tool will be documented on the [wiki](https://argans.atlassian.net/wiki/spaces/SO/overview?homepageId=995393752 "SO-Fresh Wiki").
 
 ***
-# 01_download
-MODIS imagery is downloaded from the [The Land Processes Distributed Active Archive Centre](https://lpdaac.usgs.gov/ "LPDAAC"), where "True-Colour Images" of NASA products are able to be downloaded. 
+<details>
+    <summary># 01_download</summary>
 
-The product used for this tool is MODIS MYD09GA, where images of each MODIS tile:
-* Contain RGB band information.
-* Are ~ 30 - 40 kb in size.
-* Rich archive dating from 2002 - present. 
-* Available in version [006](https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.006/ "MYD09GA.006") and [061](https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.061/ "MYD09GA.061").
+    MODIS imagery is downloaded from the [The Land Processes Distributed Active Archive Centre](https://lpdaac.usgs.gov/ "LPDAAC"), where "True-Colour Images" of NASA products are able to be downloaded. 
 
-## 1.1 extract_urls.py
-| Inputs        | Shorthand     | What is it?  |
-| ------------- |:-------------:| ------------:|
-| startDate     |       -s      | Start date (YYYY-MM-DD). |
-| endDate       |       -e      | End date (YYYY-MM-DD). |
-| outpath       |       -o      |    Path to where the textfile is saved. |
-| version       |       -v      |    MODIS data version (006 or 061). |
+    The product used for this tool is MODIS MYD09GA, where images of each MODIS tile:
+    * Contain RGB band information.
+    * Are ~ 30 - 40 kb in size.
+    * Rich archive dating from 2002 - present. 
+    * Available in version [006](https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.006/ "MYD09GA.006") and [061](https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.061/ "MYD09GA.061").
 
-###### Example:
-```
-python SO-FRESH/01_download/extract_urls.py -s 2017-01-01 -e 2017-12-31 -o download_text/ -v 006
-```
-###### Extra information:
-* Line 97 - The final value is the tile of interest - this should be modified based on v tile of interest.
+    ## 1.1 extract_urls.py
+    | Inputs        | Shorthand     | What is it?  |
+    | ------------- |:-------------:| ------------:|
+    | startDate     |       -s      | Start date (YYYY-MM-DD). |
+    | endDate       |       -e      | End date (YYYY-MM-DD). |
+    | outpath       |       -o      |    Path to where the textfile is saved. |
+    | version       |       -v      |    MODIS data version (006 or 061). |
+
+    ###### Example:
+    ```
+    python SO-FRESH/01_download/extract_urls.py -s 2017-01-01 -e 2017-12-31 -o download_text/ -v 006
+    ```
+    ###### Extra information:
+    * Line 97 - The final value is the tile of interest - this should be modified based on v tile of interest.
 
 ## 1.2 DAAC_data_download.py
 | Inputs        | Shorthand     | What is it?  |
@@ -43,6 +45,8 @@ machine urs.earthdata.nasa.gov
 login jhickson
 password password123
 ```
+<details>
+
 ***
 
 ## 02_preprocess
