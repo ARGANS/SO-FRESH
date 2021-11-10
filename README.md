@@ -9,7 +9,7 @@ This is the development stage of the Automated Polynya Identification Tool (APIT
 * [06_compare](https://github.com/ARGANS/SO-FRESH/tree/development#06_compare)
 
 |#    | Script        | Quick-input reference     |
-|     | ------------- |:-------------:|
+| --- | ------------- |:-------------:|
 | 1  | 02_preprocess/modis_prjct_jpg.py     |       01_*.jpg     |
 | 2  | 03_classification/threshold_classifier.py       |       02*.tif      |
 | 3  | 04_identify/polynya_identification_heatmap.py       |       03*.tif      |
