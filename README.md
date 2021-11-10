@@ -48,7 +48,7 @@ This is the development stage of the Automated Polynya Identification Tool (APIT
     password password123
     ```
 
-<details>
+</details>
 
 ***
 
