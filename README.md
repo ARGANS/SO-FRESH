@@ -8,9 +8,10 @@ This is the development stage of the Automated Polynya Identification Tool (APIT
 * [05_filter](https://github.com/ARGANS/SO-FRESH/tree/development#05_filter)
 * [06_compare](https://github.com/ARGANS/SO-FRESH/tree/development#06_compare)
 
+#### Quick-reference script-->input image.
 |#    | Script        | Quick-input reference     |
 | --- | ------------- |:-------------:|
-| 1  | 02_preprocess/modis_prjct_jpg.py     |       01_*.jpg     |
+| 1  | 02_preprocess/modis_prjct_jpg.py     |       01*.jpg     |
 | 2  | 03_classification/threshold_classifier.py       |       02*.tif      |
 | 3  | 04_identify/polynya_identification_heatmap.py       |       03*.tif      |
 | 4  | 05_filter/measure_mask_area_v2.py       |       05*.tif      |
@@ -152,8 +153,9 @@ Assess the occurance of open-water formations over a given period of time.
 | tile     |       -t      | Filepath to tile directory of interest. |
 | days     |       -d      | Number of days to look at from the start-date. |
 | time-end     |       -e      | Look up to this period. |
-| save     |       -save      | Save image in current directory as 'h**v**_YYYYMMDD_YYYYMMDD.tif'. |
+| save     |       -save      | Save image in current directory as 'h##v##_YYYYMMDD_YYYYMMDD.tif'. |
 | output-img     |       -o      | Output image is specified directory and filename. |
 
 ###### Extra information:
 * Start date and tile are **required**, alongside either number of days or time-end.
+***
