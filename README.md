@@ -11,7 +11,7 @@ This is the development stage of the Automated Polynya Identification Tool (APIT
     * Are ~ 30 - 40 kb in size.
     * Rich archive dating from 2002 - present. 
     * Available in version [006](https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.006/ "MYD09GA.006") and [061](https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.061/ "MYD09GA.061").
-<details>
+
         <summary>1.1 extract_urls.py</summary>
         
         | Inputs        | Shorthand     | What is it?  |
@@ -27,9 +27,7 @@ This is the development stage of the Automated Polynya Identification Tool (APIT
         ```
         ###### Extra information:
         * Line 97 - The final value is the tile of interest - this should be modified based on v tile of interest.
-<details>
 
-<details>
         <summary>1.2 DAAC_data_download.py</summary>
 
         | Inputs        | Shorthand     | What is it?  |
@@ -49,7 +47,7 @@ This is the development stage of the Automated Polynya Identification Tool (APIT
         login jhickson
         password password123
         ```
-<details>
+
 <details>
 
 ***
