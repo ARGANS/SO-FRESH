@@ -43,8 +43,8 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Arguments:
         #----------------------------------------------------------------------------------------------------
-        parser.add_argument("-s", "--time-start", help="Time lower bound (YYYY/MM/DD)")
-        parser.add_argument("-t", "--tile", help="Filepath to MODIS tile of interest.")
+        parser.add_argument("-s", "--time-start", required=True, help="Time lower bound (YYYY/MM/DD)")
+        parser.add_argument("-t", "--tile", required=True, help="Filepath to MODIS tile of interest.")
         parser.add_argument("-d", "--days", type=int, help="Number of days to look at from input image.")
         parser.add_argument("-e", "--time-end", help="Time upper bound (YYYY/MM/DD)")
         parser.add_argument("-save", "--save", action="store_true", help="Include if you would like to save the image to current directory with outputfile named 'h**v**_YYYYMMDD_YYYYMMDD.tif'.")
