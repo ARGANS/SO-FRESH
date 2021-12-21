@@ -81,17 +81,33 @@ if __name__ == "__main__":
                     pass
             if ffp_by_tile:
                 ffp_split.append(ffp_by_tile)
+        
+
+
+        img_dict = {}
         imagery = []
         for fp in ffp_split:
+            # identify tile
+            # create tile key in dictionary if it doesn't exist
+            # let the next step continue (?) and append the list to the key
+            #key = [k for k in fp ]
+            #print(key)
+            #sys.exit()
             img_by_tile = []
             for f in fp:
+                tile = [t for t in (f.split(os.sep)) if "h" and "v" in t][0]
+                img_dict[tile] = []
+                #print(len(tile))
+                #print(tile)
+                #sys.exit()
                 for i in glob.glob(os.path.join(f, "08*.tif")):
                     if i:
                         imagery.append(i)
             #if img_by_tile:
                 #imagery.append(img_by_tile)
         #pprint.pprint(imagery)
-        #sys.exit()
+        print(img_dict)
+        sys.exit()
         img_coords = []
         for img in imagery:
             (xmin, xmax, xpixel, ymin, ymax, ypixel) = extract_coords(img)
