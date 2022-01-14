@@ -8,7 +8,6 @@ import numpy as np
 import itertools
 from PIL import Image
 import rasterio
-import xarray as xr
 import pprint, gdal
 import glob, sys, os
 
@@ -16,25 +15,19 @@ import glob, sys, os
 # Script description:
 #--------------------------------------------------------------------------------
 parser = argparse.ArgumentParser(description="""
-# Produce visuals based on results.
+# Produce a netCDF of results from a specific date range, displaying occurence 
 **************************************************************************
 ##Tasks:
--
--
--
+- Select all data based on input specifications (i.e. date range, tiles of interest (if not all))
+- Stack arrays of those from the same tiles and turn in to one image for each tile. Extract co-ordinates for each tile and make sure they are all the same.
+- Cumulative sum all stacked arrays in to raster files.
+- Merge raster files and convert in to a sigular NetCDF file.
 **************************************************************************""",
 formatter_class=argparse.RawDescriptionHelpFormatter)
 
 #----------------------------------------------------------------------------------------------------
 # Functions:
 #----------------------------------------------------------------------------------------------------
-def extract_coords(product):
-    ds = gdal.Open(product)
-    xmin, xpixel, _, ymax, _, ypixel = ds.GetGeoTransform()
-    xmax = xmin+xpixel*ds.RasterXSize
-    ymin = ymax+ypixel*ds.RasterYSize
-    return [xmin, xmax, xpixel, ymin, ymax, ypixel]
-
 def array_to_img(array, coords):
     cols, rows, proj, geom = coords[0], coords[1], coords[2], coords[3]
     outDataset = gdal.GetDriverByName("GTiff").Create(out_file, cols, rows, 1, gdal.GDT_Float32)
@@ -55,6 +48,7 @@ if __name__ == "__main__":
         parser.add_argument("-t", "--tile-folder", nargs="+", help="Opportunity to specify tiles of interest.")
         parser.add_argument("-s", "--time-start", required=True, help="Time lower bound (YYYY/MM/DD)")
         parser.add_argument("-e", "--time-end", required=True, help="Time upper bound (YYYY/MM/DD)")
+        parser.add_argument("-r", "--remove", required=False, action="store_true", help="Include to remove created 'tif' files")
         #parser.add_argument("-d", "--days", type=int, help="Time upper bound (YYYY/MM/DD)")
 
         argcomplete.autocomplete(parser)
@@ -106,7 +100,6 @@ if __name__ == "__main__":
         # Remove key which do not any associated values.
         img_dict = {k : v for k, v in img_dict.items() if v}
 
-        #pprint.pprint(img_dict)
         img_array = {}
         img_coords = {}
         for key in img_dict.keys():
@@ -122,152 +115,37 @@ if __name__ == "__main__":
                 proj_info = data.RasterXSize, data.RasterYSize, data.GetProjection(), data.GetGeoTransform()
                 img_coords[key].append(proj_info)
                 del data
-                '''
-                ############################################################
-                #import rioxarray as rxr
-                #data = rxr.open_rasterio(img)
-                #data = xr.open_dataset(img, engine="rasterio")
-                ### ARRAY ###
-                #img_array[key].append(data.data)
-                #print(data.data)
-                ### COORDS ###
-                #img_coords[key].append(data.coords)
-                ############################################################
-                #XARRAY ONLY
-                #dA = xr.DataArray(data.data, dims=['band', 'x', 'y'], coords={'band': data.coords["band"], 'x': data.coords["x"], 'y': data.coords["y"]})
-                #img_array[key].append(dA)
-                ###########################################################
-                # RASTERIO ONLY
-                data = gdal.Open(img)
-                #data = rasterio.open(img)
-                #print(data.ReadAsArray())
-                ### ARRAY ###
-                img_array[key].append(data.ReadAsArray())
-                #img_array[key].append(data.read())
-                ### COORDS ###
-                # Order: cols, rows, proj, geom
-                proj_info = data.RasterXSize, data.RasterYSize, data.GetProjection(), data.GetGeoTransform()
-                #cols = data.RasterXSize
-                #rows = data.RasterYSize
-                #proj = data.GetProjection()
-                #geom = data.GetGeoTransform()
-                #print(cols, rows, proj, geom)
-                ##### Is it worth making this in to a function?! and arr to img function too
-                img_coords[key].append(proj_info)
-                #img_coords[key].append(data.bounds)
-                del data
-                ############################################################
-                '''
         # If all co-ordinates match in the list, select the first one.
         for key in img_coords.keys():
             if all(img_coords[key]):
                 img_coords[key] = [img_coords[key][0]]
+            else:
+                raiseRuntimeError(f"The key ({key}) co-ordinates do not all match")
 
         # Stack all available arrays and calculate their cumulative sum.
         for key in img_array.keys():
             sum_arr = np.sum(np.stack(img_array[key]), axis=0)
             img_array[key] = sum_arr
 
-            #cum_array = xr.DataArray(np.sum(np.stack(img_array[key]), axis=0), dims=["band", "x", "y"], coords={'band': img_coords[key][0]["band"], 'x': img_coords[key][0]["x"], 'y': img_coords[key][0]["y"]})
-
         # Export stacked tile arrays to tifs files.
+        imgs_4_netcdf = []
         for key in img_array.keys():
-            output_fp = "/".join((args.filepath_tile, "99_outputs/"))
+            output_fp = "/".join((args.filepath_tile, "99_outputs", (args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "")), ""))
             out_file = os.path.join(output_fp + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + "_" + key + ".tif")
             if not os.path.exists(output_fp):
                 os.mkdir(output_fp)
             array_to_img(img_array[key], img_coords[key][0])
+            imgs_4_netcdf.append(out_file)
 
-            sys.exit()
+        if not os.path.join(output_fp + "00_netcdf/"):
+            os.mkdir(os.path.join(output_fp + "00_netcdf/"))
+        cmd = "gdal_merge.py -of NetCDF -o %s %s"%(os.path.join(output_fp + "00_netcdf/" + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + ".nc"), ' '.join(imgs_4_netcdf))
+        os.system(cmd)
 
+        # Remove all '.tif' files created if specified.
+        [os.remove(i) for i in imgs_4_netcdf if args.remove == True]
 
-
-
-
-
-
-
-
-        for arr, coords in zip(img_array['h18v15'], img_coords['h18v15']):
-            lon = [coords[0], coords[2]]
-            lat = [coords[1], coords[3]]
-            xtest = xr.DataArray(data=img_array['h18v15'], coords=dict(lon=(["xmin", "xmax"], lon), lat=(["ymin", "ymax"], lat)))
-        print(xtest)
-        sys.exit()
-
-        ############
-        # Write to netCDF4 file for each tile and extracting the appropriate coords for that image.
-        ############
-
-
-
-
-
-
-
-
-
-
-        sys.exit()
-
-        ####################
-        img_coords = {}
-        for key, value in img_dict.items():
-            if not key in img_coords:
-                img_coords[key] = []
-            if isinstance(value, list):
-                for v in value:
-                    #List order: xmin, xmax, xpixel, ymin, ymax, ypixel
-                    xycoords = extract_coords(v)
-                    img_coords[key].append(xycoords)
-
-        for ik, ck in zip(img_dict.keys(), img_coords.keys()):
-            if ik == ck:
-                for iv, cv in zip(img_dict[ik], img_coords[ck]):
-                    # function that takes img and coordinates and outputs an georeferenced array
-                    import rasterio
-                    data = rasterio.open(iv)
-                    print(data.bounds)
-                    print(cv)
-
-                    sys.exit()
-                    array = np.array([np.array(Image.open(iv))])
-                    print(array)
-                    ### gdal info the img before opening to an array ###
-                    sys.exit()
-            else:
-                raise RuntimeError("Keys do not match.")
-
-            
-            
-            print(d)
-            print(c)
-        sys.exit()
-
-
-
-        pprint.pprint(img_dict.keys())
-        pprint.pprint(img_coords.keys())
-        sys.exit()
-        array = np.array([np.array(Image.open(fimg)) for fimg in imagery])
-
-        print(len(array))
-        print('--------')
-        print(img_coords)
-        print(len(img_coords))
-        sys.exit()
-        cumu_array = np.sum(np.stack(array), axis=0)
-
-        import matplotlib.pyplot as plt
-        plt.imshow(cumu_array)
-        plt.colorbar()
-        plt.show()
-        #print(cumu_array)
-        sys.exit()
-
-
-
-        #----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
     except RuntimeError as msg:
