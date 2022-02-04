@@ -5,11 +5,13 @@ import argcomplete, argparse
 from argcomplete.completers import ChoicesCompleter, FilesCompleter
 from datetime import datetime, timedelta
 import numpy as np
+import numpy.ma as ma
 import itertools
 from PIL import Image
 import rasterio
 import pprint, gdal
 import glob, sys, os
+import netCDF4 as nc
 
 #--------------------------------------------------------------------------------
 # Script description:
@@ -34,6 +36,7 @@ def array_to_img(array, coords):
     outDataset.SetProjection(proj)
     outDataset.SetGeoTransform(geom)
     outBand = outDataset.GetRasterBand(1)
+    #outBand.SetDescription("Frequency_count")
     outBand.WriteArray(array)
 
 #==========================================================
@@ -68,6 +71,7 @@ if __name__ == "__main__":
             filepath = [os.path.join(args.filepath_tile, t) for t in args.tile_folder if os.path.isdir(os.path.join(args.filepath_tile, t)) == True]
 
         # Add date to the filepath.
+        print("Collecting data based on entries...")
         sdate = datetime.strptime(os.path.join(args.time_start), "%Y/%m/%d").date()
         edate = datetime.strptime(os.path.join(args.time_end), "%Y/%m/%d").date()
         dates = [sdate + timedelta(days=x) for x in range((edate - sdate).days + 1)]
@@ -121,29 +125,73 @@ if __name__ == "__main__":
                 img_coords[key] = [img_coords[key][0]]
             else:
                 raiseRuntimeError(f"The key ({key}) co-ordinates do not all match")
-
+        print("Processing...")
         # Stack all available arrays and calculate their cumulative sum.
         for key in img_array.keys():
             sum_arr = np.sum(np.stack(img_array[key]), axis=0)
             img_array[key] = sum_arr
 
         # Export stacked tile arrays to tifs files.
+        print("Exporting images...")
         imgs_4_netcdf = []
         for key in img_array.keys():
-            output_fp = "/".join((args.filepath_tile, "99_outputs", (args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "")), ""))
-            out_file = os.path.join(output_fp + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + "_" + key + ".tif")
+            output_fp = "/".join((args.filepath_tile + "99_outputs", (args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "")), ""))
+            out_file = os.path.join(output_fp + "tmp/" + "SOFRESH_MODIS_POLYNYA_" + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + "_" + key + ".tif")
             if not os.path.exists(output_fp):
                 os.mkdir(output_fp)
+            if not os.path.exists(os.path.join(output_fp + "tmp/")):
+                os.mkdir(os.path.join(output_fp + "tmp/"))
             array_to_img(img_array[key], img_coords[key][0])
             imgs_4_netcdf.append(out_file)
 
-        if not os.path.join(output_fp + "00_netcdf/"):
+        if not os.path.exists(os.path.join(output_fp + "00_netcdf/")):
             os.mkdir(os.path.join(output_fp + "00_netcdf/"))
-        cmd = "gdal_merge.py -of NetCDF -o %s %s"%(os.path.join(output_fp + "00_netcdf/" + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + ".nc"), ' '.join(imgs_4_netcdf))
-        os.system(cmd)
+        #cmd = "gdal_merge.py -of GTIFF -o %s %s"%(os.path.join(output_fp + "tmp/" + "SOFRESH_MODIS_POLYNYA_" + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + ".tif"), ' '.join(imgs_4_netcdf))
+        
+        # Mosaic list of tif tiles to one netCDF file.
+        out_tif= os.path.join(output_fp + "tmp/" + "SOFRESH_MODIS_POLYNYA_" + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + ".tif")
+        out_nc = os.path.join(output_fp + "00_netcdf/" + "SOFRESH_MODIS_POLYNYA_" + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + ".nc")
+        # Merge all tif files in to one.
+        os.system("gdal_merge.py -q -of GTIFF -o %s %s"%(out_tif, ' '.join(imgs_4_netcdf)))
+        print("Merging images...")
+        # Convert tif to netCDF.
+        os.system("gdal_translate -q -of netCDF %s %s"%(out_tif, out_nc))
+        print("NetCDF file successfully created.")
+        # Change variable long name in netCDF file to "Count Frequency".
+        os.system("ncatted -O -a long_name,Band1,o,c,Count_Frequency %s"%(out_nc))
+
 
         # Remove all '.tif' files created if specified.
         [os.remove(i) for i in imgs_4_netcdf if args.remove == True]
+        sys.exit()
+        print("Running analysis...")
+        # Open netCDF data.
+        nc_data = nc.Dataset(out_nc)
+        # Open data in to an array.
+        nc_array = nc_data.variables['Band1'][:].data
+        #from sklearn.neighbors import ????????????????????????????????????????????????????????????????????????????
+
+        nbrs = nn(n_neighbors=2, algorithm="ball_tree").fit(nc_array)
+        print(nbrs)
+        test = nbrs.kneighbors_graph(nc_array).toarray()
+        print(test)
+        '''
+        # Check array contents
+        unique, counts = np.unique(nc_array, return_counts=True) 
+        for u, c in zip(unique, counts):
+            print(int(u), "-->", c)
+        sys.exit()
+        '''
+
+        #print(np.asarray((unique, counts)).T.round(4))
+        sys.exit()
+        print(nc_array)
+        print(type(nc_array))
+        ma.nc_array.filled()
+        print(nc_array)
+        print(type(nc_array))
+
+        #print(ma.count_masked(nc_array))
 
 #----------------------------------------------------------------------------------------------------
         # Run and errors:
