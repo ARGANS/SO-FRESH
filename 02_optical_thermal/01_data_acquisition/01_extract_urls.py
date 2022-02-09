@@ -104,7 +104,10 @@ if __name__ == "__main__":
             product = "MYD09GA"
         elif args.data_type == "thermal":
             product = "MYDTBGA"
+
         textFileName =os.path.join(args.outpath,'modis_%s_%s_%s_V%s.txt'%(product, args.time_start, args.time_end, args.version))
+        if not os.path.exists(textFileName):
+            os.system("touch %s"%(textFileName))
         textFile = open(textFileName, 'w')
 
         #Appened the date to the URL to access every dateFolder
