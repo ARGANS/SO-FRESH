@@ -90,11 +90,12 @@ for f in fileList:
         month = f.rsplit('/', 2)[1].rsplit('.',2)[1]
         day = f.rsplit('/', 2)[1].rsplit('.',2)[2]
 
-    if os.path.exists(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
-        continue
-    else:
+    if not os.path.exists(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
         os.makedirs(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
     saveName = os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", f.split('/')[-1].strip())
+    
+    if os.path.exists(os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", ("01_" + f.split('/')[-1].strip()))) or os.path.exists(saveName):
+        continue
 
     # Create and submit request and download file
     with requests.get(f.strip(), verify=False, stream=True, auth=(netrc(netrcDir).authenticators(urs)[0], netrc(netrcDir).authenticators(urs)[2])) as response:
