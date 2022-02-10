@@ -90,9 +90,9 @@ for f in fileList:
         month = f.rsplit('/', 2)[1].rsplit('.',2)[1]
         day = f.rsplit('/', 2)[1].rsplit('.',2)[2]
 
-    if not os.path.exists(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
-        os.makedirs(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
-    saveName = os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", f.split('/')[-1].strip())
+    if not os.path.exists(saveDir+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
+        os.makedirs(saveDir+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
+    saveName = os.path.join(saveDir+"/"+tile+"/"+year+"/"+month+"/"+day+"/", f.split('/')[-1].strip())
     
     if os.path.exists(os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", ("01_" + f.split('/')[-1].strip()))) or os.path.exists(saveName):
         continue
