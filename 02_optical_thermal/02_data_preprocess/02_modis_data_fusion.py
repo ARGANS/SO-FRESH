@@ -5,6 +5,8 @@ import argcomplete, argparse
 from argcomplete.completers import ChoicesCompleter, FilesCompleter
 import gdal
 import glob
+import itertools
+from operator import itemgetter
 import sys, os
 from datetime import datetime, timedelta
 
@@ -56,31 +58,112 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Code:
         #----------------------------------------------------------------------------------------------------
-        # Check if tiles are specified, if not take all available tiles.
-        #print(args.input_dir)
-        #print(args.tile)
-        
+        # Extract all dates in datetime format.
+        sdate = datetime.strptime(os.path.join(args.time_start), "%Y/%m/%d").date()
+        edate = datetime.strptime(os.path.join(args.time_end), "%Y/%m/%d").date()
+        dates = [sdate + timedelta(days=x) for x in range((edate - sdate).days + 1)]
+       
+        # Extract all tiles.
+        tiles = set()
         if args.tile == None:
-            filepath = [t for t in sorted(glob.glob(os.path.join(args.input_dir, "*")))]
-            # rather than the *, could I put the 'products' variable, to specify and then have the * to select all tiles and thn I can play with the date stuff after it.
-            print(filepath)
-            sys.exit()
+            all_tiles = [os.listdir(p) for p in products]
+            for at in all_tiles:
+                for t in at:
+                    if t not in tiles:
+                        tiles.add(t)
         elif not args.tile == None:
-            filepath = [os.path.join(args.filepath_tile, t) for t in args.tile if os.path.isdir(os.path.join(args.input_dir, t)) == True]
+            for t in args.tile:
+                tiles.add(t)
+        print('date')
+        print(dates)
+        print('tiles')
+        
 
 
 
 
-        print(args.input_dir)
+
+
+        for p in products:
+            tiles = [os.listdir(p)]
+        print(tiles)
+        sys.exit()
+
+        # Check if tiles are specified, if not take all available tiles.
+        if args.tile == None:
+            filepath = [sorted(glob.glob(os.path.join(t+"/*"))) for t in products]
+        elif not args.tile == None:
+            filepath = [sorted(glob.glob(os.path.join(p+t))) for p in products for t in args.tile]
+        
+
+        # Need the length of the amount of lists to look at,
+        # make sure those lists are the same lengths
+        # the based on that, select element 0 - #. 
+        # Rather than range could this be just len
+
+        #length = (len(f) for f in filepath)
+        length = []
+        for f in filepath:
+            lgth = len(f)
+            length.append(lgth)
+        if all(length):
+            length = length[0]
+
+        for f in filepath:
+            print(f)
+        sys.exit()
+        
+        for fp in filepath:
+            for rng in range(len(fp)):
+                print(fp[rng])
+        sys.exit()
+
+
+
+
+
+        print(list(map(itemgetter(0), filepath)))
+        sys.exit()
+
+        for f in filepath:
+            print(itemgetter(f))
+            sys.exit()
+
+
+
+
+
+        for fp in filepath:
+            print(fp)
+            sys.exit()
+            #print('--')
+            for rang in range(len(fp)):
+                #print(fp)
+                print(rang)
+                #sys.exit()
+
+
+
+
+
+
+        count = 0
+        for r in range(len(filepath)):
+            for f in filepath:
+                print(f[r])
+            
+
+            sys.exit()
+        # Select files which fit in date range.
         sdate = datetime.strptime(os.path.join(args.time_start), "%Y/%m/%d").date()
         edate = datetime.strptime(os.path.join(args.time_end), "%Y/%m/%d").date()
         dates = [sdate + timedelta(days=x) for x in range((edate - sdate).days + 1)]
         
-        ffp = ["/".join((p[0], str(p[1].year), str('%02d' %p[1].month), str('%02d' %p[1].day))) for p in itertools.product(filepath,dates) if os.path.isdir("/".join((p[0], str(p[1].year), str('%02d' %p[1].month), str('%02d' %p[1].day))))]
-        print(sdate)
-        print(edate)
-        print('---')
-        print(dates)
+        # Full filepaths. (i.e. "product/tile/year/month/day")
+        ffp = ["/".join((ftp, str(p[1].year), str('%02d' %p[1].month), str('%02d' %p[1].day))) for p in itertools.product(filepath,dates) for ftp in p[0] if os.path.isdir("/".join((ftp, str(p[1].year), str('%02d' %p[1].month), str('%02d' %p[1].day))))]
+
+        
+
 
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
