@@ -9,6 +9,7 @@ import itertools
 from operator import itemgetter
 import sys, os
 from datetime import datetime, timedelta
+import pprint
 
 #--------------------------------------------------------------------------------
 # Script description:
@@ -24,10 +25,30 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 #----------------------------------------------------------------------------------------------------
 # Functions:
 #----------------------------------------------------------------------------------------------------
+def imagery_fusion(imgs_fp, outdir, products, versions):
+    # Fuse imagery from list. 
+    # Output name
+    files = [sorted(glob.glob((i+"/02_*.tif"))) for i in imgs_fp]
+    files = [item for sublist in files for item in sublist]
+    if all(len(list(files)) == len(l) for l in list((products, versions))):
+        prod_ver = "_".join([(p+"_"+v) for p, v in zip(args.products, args.version)]) # Product & version
+        fp = []
+        for i in imgs_fp:
+            day, month, year, tile = os.path.split(i)[1], os.path.split(os.path.split(i)[0])[1], os.path.split(os.path.split(os.path.split(i)[0])[0])[1], os.path.split(os.path.split(os.path.split(os.path.split(i)[0])[0])[0])[1]
+            fp_indv = "/".join((prod_ver, tile, year, month, day))
+            fp.append(fp_indv)
+        if all(fp): fp = fp[0]
+    else:
+        raiseRuntimeError("The number of original inputs (products and versions) do not match the number of selected images.")
 
+    output_dir = (outdir+prod_ver+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
+    output_name = "_".join(("02",prod_ver,tile,(year+month+day+".tif")))
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+    cmd = "gdal_merge.py -q -of GTIFF -seperate -o %s %s"%((output_dir+output_name), " ".join(files))
+    os.system(cmd)
+    return((output_dir+output_name))
 
-#==========================================================
-# main:
 #----------------------------------------------------------
 if __name__ == "__main__":
     try:
@@ -59,112 +80,29 @@ if __name__ == "__main__":
         # Code:
         #----------------------------------------------------------------------------------------------------
         # Extract all dates in datetime format.
-        sdate = datetime.strptime(os.path.join(args.time_start), "%Y/%m/%d").date()
-        edate = datetime.strptime(os.path.join(args.time_end), "%Y/%m/%d").date()
+        sdate, edate  = datetime.strptime(os.path.join(args.time_start), "%Y/%m/%d").date(), datetime.strptime(os.path.join(args.time_end), "%Y/%m/%d").date()
         dates = [sdate + timedelta(days=x) for x in range((edate - sdate).days + 1)]
-       
-        # Extract all tiles.
-        tiles = set()
-        if args.tile == None:
-            all_tiles = [os.listdir(p) for p in products]
-            for at in all_tiles:
-                for t in at:
-                    if t not in tiles:
-                        tiles.add(t)
-        elif not args.tile == None:
-            for t in args.tile:
-                tiles.add(t)
-        print('date')
-        print(dates)
-        print('tiles')
-        
-
-
-
-
-
-
-        for p in products:
-            tiles = [os.listdir(p)]
-        print(tiles)
-        sys.exit()
-
         # Check if tiles are specified, if not take all available tiles.
         if args.tile == None:
-            filepath = [sorted(glob.glob(os.path.join(t+"/*"))) for t in products]
+            tile_filepath = [sorted(glob.glob(os.path.join(t+"/*"))) for t in products]
         elif not args.tile == None:
-            filepath = [sorted(glob.glob(os.path.join(p+t))) for p in products for t in args.tile]
-        
-
-        # Need the length of the amount of lists to look at,
-        # make sure those lists are the same lengths
-        # the based on that, select element 0 - #. 
-        # Rather than range could this be just len
-
-        #length = (len(f) for f in filepath)
-        length = []
+            tile_filepath = [sorted(glob.glob(os.path.join(p+t))) for p in products for t in args.tile]
+        # Generate filepaths with tile & dates. 
+        filepath = []
+        for sub_f in tile_filepath:
+            for f in itertools.product(sub_f, dates):
+                filepath.append("/".join((f[0], str(f[1].year), str('%02d' %f[1].month), str('%02d' %f[1].day))))
+        # Create dictionary to store product filepaths in.
+        filepath_dict = {key:[] for key in args.products}
         for f in filepath:
-            lgth = len(f)
-            length.append(lgth)
-        if all(length):
-            length = length[0]
-
-        for f in filepath:
-            print(f)
-        sys.exit()
+            match = [prods for prods in args.products if (prods in f)]
+            if len(match) > 1: raiseRuntimeError("Multiple matches were found in string, please name filepaths more appropriately.")
+            filepath_dict[match[0]].append(f) 
         
-        for fp in filepath:
-            for rng in range(len(fp)):
-                print(fp[rng])
-        sys.exit()
-
-
-
-
-
-        print(list(map(itemgetter(0), filepath)))
-        sys.exit()
-
-        for f in filepath:
-            print(itemgetter(f))
-            sys.exit()
-
-
-
-
-
-        for fp in filepath:
-            print(fp)
-            sys.exit()
-            #print('--')
-            for rang in range(len(fp)):
-                #print(fp)
-                print(rang)
-                #sys.exit()
-
-
-
-
-
-
-        count = 0
-        for r in range(len(filepath)):
-            for f in filepath:
-                print(f[r])
-            
-
-            sys.exit()
-        # Select files which fit in date range.
-        sdate = datetime.strptime(os.path.join(args.time_start), "%Y/%m/%d").date()
-        edate = datetime.strptime(os.path.join(args.time_end), "%Y/%m/%d").date()
-        dates = [sdate + timedelta(days=x) for x in range((edate - sdate).days + 1)]
-        
-        # Full filepaths. (i.e. "product/tile/year/month/day")
-        ffp = ["/".join((ftp, str(p[1].year), str('%02d' %p[1].month), str('%02d' %p[1].day))) for p in itertools.product(filepath,dates) for ftp in p[0] if os.path.isdir("/".join((ftp, str(p[1].year), str('%02d' %p[1].month), str('%02d' %p[1].day))))]
-
-        
-
-
+        keys, values = list(filepath_dict.keys()), list(filepath_dict.values())
+        for i in range(len(filepath_dict[keys[0]])):
+            items = [lst[i] for lst in values]
+            imagery_fusion(items, args.input_dir, args.products, args.version)
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
