@@ -93,7 +93,7 @@ for f in fileList:
     if not os.path.exists(saveDir+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
         os.makedirs(saveDir+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
     saveName = os.path.join(saveDir+"/"+tile+"/"+year+"/"+month+"/"+day+"/", f.split('/')[-1].strip())
-    
+
     if os.path.exists(os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", ("01_" + f.split('/')[-1].strip()))) or os.path.exists(saveName):
         continue
 
