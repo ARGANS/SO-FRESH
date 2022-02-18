@@ -56,6 +56,7 @@ if __name__ == "__main__":
         # Arguments:
         #----------------------------------------------------------------------------------------------------
         parser.add_argument("-i", "--input-dir", required=True, help="Input directory containing MODIS products.").completer = FilesCompleter(allowednames=(".tif"))
+        parser.add_argument("-o", "--output-dir", required=True, help="Output directory to save the fused product in.")
         parser.add_argument("-t", "--tile", nargs="+", help="Opportunity to specify tiles of interest.")
         parser.add_argument("-s", "--time-start", required=True, help="Time lower bound (YYYY/MM/DD).")
         parser.add_argument("-e", "--time-end", required=True, help="Time upper bound (YYYY/MM/DD).")
@@ -102,7 +103,7 @@ if __name__ == "__main__":
         keys, values = list(filepath_dict.keys()), list(filepath_dict.values())
         for i in range(len(filepath_dict[keys[0]])):
             items = [lst[i] for lst in values]
-            imagery_fusion(items, args.input_dir, args.products, args.version)
+            imagery_fusion(items, args.output_dir, args.products, args.version)
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
