@@ -114,7 +114,7 @@ if __name__ == "__main__":
         #----------------------------------------------------------------------------------------------------
         # Arguments:
         #----------------------------------------------------------------------------------------------------
-        parser.add_argument("-i", "--input-img", required=True, nargs = "+", help="The input file. The output will be output to this directory with the same filename with a 'tif' extension.").completer = FilesCompleter(allowednames=(".jpg", ".hdf"))
+        parser.add_argument("-i", "--input-img", required=True, nargs = "+", help="The input file begining with '01' and ending with '.jpg' or '.hdf'. (Can include as path/*/*/02*).").completer = FilesCompleter(allowednames=(".jpg", ".hdf"))
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
 
