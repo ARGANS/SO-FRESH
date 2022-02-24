@@ -39,13 +39,14 @@ def imagery_fusion(imgs_fp, outdir, products, versions):
             fp.append(fp_indv)
         if all(fp): fp = fp[0]
     else:
-        raiseRuntimeError("The number of original inputs (products and versions) do not match the number of selected images.")
+        #raise RuntimeError("The number of original inputs (products and versions) do not match the number of selected images.")
+        return
 
     output_dir = (outdir+prod_ver+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
     output_name = "_".join(("02",prod_ver,tile,(year+month+day+".tif")))
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
-    cmd = "gdal_merge.py -q -of GTIFF -seperate -o %s %s"%((output_dir+output_name), " ".join(files))
+    cmd = "gdal_merge.py -q -of GTIFF -seperate -ot Float32 -o %s %s"%((output_dir+output_name), " ".join(files))
     os.system(cmd)
     return((output_dir+output_name))
 
@@ -88,7 +89,7 @@ if __name__ == "__main__":
             tile_filepath = [sorted(glob.glob(os.path.join(t+"/*"))) for t in products]
         elif not args.tile == None:
             tile_filepath = [sorted(glob.glob(os.path.join(p+t))) for p in products for t in args.tile]
-        # Generate filepaths with tile & dates. 
+        # Generate filepaths with tile & dates.
         filepath = []
         for sub_f in tile_filepath:
             for f in itertools.product(sub_f, dates):
@@ -98,11 +99,13 @@ if __name__ == "__main__":
         for f in filepath:
             match = [prods for prods in args.products if (prods in f)]
             if len(match) > 1: raiseRuntimeError("Multiple matches were found in string, please name filepaths more appropriately.")
-            filepath_dict[match[0]].append(f) 
-        
+            filepath_dict[match[0]].append(f)
+
         keys, values = list(filepath_dict.keys()), list(filepath_dict.values())
         for i in range(len(filepath_dict[keys[0]])):
             items = [lst[i] for lst in values]
+            print(items)
+            if not any(os.path.isdir(x) for x in items): continue
             imagery_fusion(items, args.output_dir, args.products, args.version)
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
