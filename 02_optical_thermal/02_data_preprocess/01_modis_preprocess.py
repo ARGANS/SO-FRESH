@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
 import pandas as pd
+import pprint
 import osr
 from tqdm import tqdm
 
@@ -68,7 +69,7 @@ def modis_jpg2tif(input, output, epsg, geom):
         raise RuntimeError('Please input a 2D or 3D array.')
 
     #Set output information (stored from input image)
-    outDataset = gdal.GetDriverByName("GTiff").Create(output, ny, nx, shp, gdal.GDT_Byte)
+    outDataset = gdal.GetDriverByName("GTiff").Create(output, ny, nx, shp, gdal.GDT_Float32)
     outDataset.SetGeoTransform(geom)
     srs = osr.SpatialReference()
     srs.ImportFromEPSG(epsg)
@@ -93,10 +94,10 @@ def modis_extract_hdf(img):
 
 def normalise_reprjct(img, epsg, geom):
     # Normalise MODIS imagery from storage values and assign projection. (Specifically MODIS Band 32 - Thermal Infrared (TIR) 11.77-12.27 um).
-    cmd = (gdal.Open(img).ReadAsArray()) * 0.01
+    cmd = (gdal.Open(img).ReadAsArray() * 0.01)
     output = os.path.dirname(os.path.dirname(img)) + ("/02_" + os.path.basename(img)[4:-6] + ".tif")
     shp, ny, nx = gdal.Open(img).RasterCount, gdal.Open(img).ReadAsArray().shape[0], gdal.Open(img).ReadAsArray().shape[1]
-    outDataset = gdal.GetDriverByName("GTiff").Create(output, ny, nx, shp, gdal.GDT_Byte)
+    outDataset = gdal.GetDriverByName("GTiff").Create(output, ny, nx, shp, gdal.GDT_Float32)
     outDataset.SetGeoTransform(geom)
     srs = osr.SpatialReference()
     srs.ImportFromEPSG(epsg)
