@@ -85,7 +85,7 @@ if __name__ == "__main__":
             cols, rows, proj, geom = img_open.RasterXSize, img_open.RasterYSize, img_open.GetProjection(), img_open.GetGeoTransform()
             # Noise removal from the heatmap.
             nr_output = os.path.split(input)[0]+"/03c"+os.path.basename(os.path.splitext(input)[0])[3:].rsplit("classification")[0]+"heatmap_eroded.tif"
-            noise_removal(window_filter, os.path.split(input)[0] + "/03c" + os.path.basename(os.path.splitext(input)[0])[3:] + "_heatmap_eroded.tif")
+            noise_removal(window_filter, os.path.split(input)[0] + "/03c" + os.path.basename(os.path.splitext(input)[0])[3:].rsplit("classification")[0]+ "heatmap_eroded.tif")
         print("Process complete - heatmap and masks produced.")
         #----------------------------------------------------------------------------------------------------
         # Run and errors:
