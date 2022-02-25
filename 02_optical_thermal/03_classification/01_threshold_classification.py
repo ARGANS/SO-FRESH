@@ -74,10 +74,10 @@ def threshold_classify(input, opt_thresh=None, opt_bands=None, therm_thresh=None
     # Command inputs.
     band_expression = ' '.join([f"-{l} {input} --{l}_band={n}" for n, l in zip(band_numbs, band_lets)]) 
 
-    opt_calc = "*".join([f"({b}>1)*({b}<={opt_thresh})" for b in opt_bands_let])
+    opt_calc = "*".join([f"({b}<={opt_thresh})" for b in opt_bands_let])
     therm_calc = "*".join([f"({b}>={therm_thresh})" for b in therm_bands_let])
     # Calculation expression.
-    calc_expression = opt_calc+" + "+therm_calc
+    calc_expression = opt_calc+"*"+therm_calc
 
     os.system("gdal_calc.py --quiet %s --outfile=%s --calc='%s' --overwrite"%(band_expression, tmpout, calc_expression))
     os.system("gdal_translate -q -b 1 %s %s"%(tmpout, out_img))
