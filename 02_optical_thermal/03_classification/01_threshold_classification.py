@@ -83,6 +83,14 @@ def threshold_classify(input, opt_thresh=None, opt_bands=None, therm_thresh=None
     os.system("gdal_translate -q -b 1 %s %s"%(tmpout, out_img))
     os.remove(tmpout)
 
+def thermal_threshold_classification(input):
+    out_img = os.path.split(input)[0]+"/03a"+os.path.basename(os.path.splitext(input)[0])[2:]+"_classification_t265.tif"
+    tmpout = out_img[:-4] + "_tmpfile.tif"
+    os.system("gdal_calc.py --quiet -A %s --allBands=A --outfile=%s --calc='A>=%s' --overwrite"%(input, tmpout, 265))
+    os.system("gdal_translate -q -b 1 %s %s"%(tmpout, out_img))
+    os.remove(tmpout)
+    
+
 def img_viewer(input):
     img = mpimg.imread(input)
     imgplot = plt.imshow(img)
@@ -110,7 +118,13 @@ if __name__ == "__main__":
         print(f"Undertaking threshold classification for {len(args.input_img)} images")
         for img in tqdm(args.input_img):
             products = [string for string in (os.path.basename(img).rsplit("_")) if "MYD" in string]
-            if len(products) == 2:
+            if len(products) == 1:
+                if products[0].startswith("MYD"):
+                    product = products[0][0:7]
+                    if product == "MYDTBGA":
+                        thermal_threshold_classification(img)
+                        continue
+            elif len(products) == 2:
                 if gdal.Open(img).ReadAsArray().ndim == 3:
                     img_array = gdal.Open(img).ReadAsArray()
                     # Number of bands.
