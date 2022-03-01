@@ -46,7 +46,7 @@ def noise_removal(array, eroded_output):
     outDataset.SetProjection(proj)
     outDataset.SetGeoTransform(geom)
     outBand = outDataset.GetRasterBand(1)
-    outBand.WriteArray(array_erode) 
+    outBand.WriteArray(array_erode)
 
 #==========================================================
 # main:
