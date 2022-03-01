@@ -12,7 +12,7 @@
 |3.2    | 02_noise_removal.py           | 03a_file.tif |
 |3.3    | 03_filter.py                  | 03c_file.tif |
 |4.1    | 01_netcdf.py                  | 03f_file.tif      |
-**
+
 # 1. Data acquisition and download.
 MODIS data is acquired from [The Land Processes Distributed Active Archive Centre](https://lpdaac.usgs.gov/ "LPDAAC").
 From this archive centre, current data available for download is:
@@ -52,5 +52,3 @@ machine urs.earthdata.nasa.gov
 login jhickson
 password password123
 ```
-
-
