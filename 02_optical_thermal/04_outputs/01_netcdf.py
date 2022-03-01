@@ -152,7 +152,7 @@ if __name__ == "__main__":
         if not os.path.exists(os.path.join(output_fp + "00_netcdf/")):
             os.mkdir(os.path.join(output_fp + "00_netcdf/"))
         #cmd = "gdal_merge.py -of GTIFF -o %s %s"%(os.path.join(output_fp + "tmp/" + "SOFRESH_MODIS_POLYNYA_" + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + ".tif"), ' '.join(imgs_4_netcdf))
-        
+
         # Mosaic list of tif tiles to one netCDF file.
         out_tif= os.path.join(output_fp + "tmp/" + "SOFRESH_MODIS_POLYNYA_" + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + ".tif")
         out_nc = os.path.join(output_fp + "00_netcdf/" + "SOFRESH_MODIS_POLYNYA_" + args.time_start.replace("/", "") + "_" + args.time_end.replace("/", "") + ".nc")
@@ -168,37 +168,7 @@ if __name__ == "__main__":
 
         # Remove all '.tif' files created if specified.
         [os.remove(i) for i in imgs_4_netcdf if args.remove == True]
-        sys.exit()
-        print("Running analysis...")
-        # Open netCDF data.
-        nc_data = nc.Dataset(out_nc)
-        # Open data in to an array.
-        nc_array = nc_data.variables['Band1'][:].data
-        #from sklearn.neighbors import ????????????????????????????????????????????????????????????????????????????
-
-        nbrs = nn(n_neighbors=2, algorithm="ball_tree").fit(nc_array)
-        print(nbrs)
-        test = nbrs.kneighbors_graph(nc_array).toarray()
-        print(test)
-        '''
-        # Check array contents
-        unique, counts = np.unique(nc_array, return_counts=True) 
-        for u, c in zip(unique, counts):
-            print(int(u), "-->", c)
-        sys.exit()
-        '''
-
-        #print(np.asarray((unique, counts)).T.round(4))
-        sys.exit()
-        print(nc_array)
-        print(type(nc_array))
-        ma.nc_array.filled()
-        print(nc_array)
-        print(type(nc_array))
-
-        #print(ma.count_masked(nc_array))
-
-#----------------------------------------------------------------------------------------------------
+        #----------------------------------------------------------------------------------------------------
         # Run and errors:
         #----------------------------------------------------------------------------------------------------
     except RuntimeError as msg:
