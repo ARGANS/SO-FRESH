@@ -27,16 +27,16 @@ Extract full links for product download, through the use of web-scraping, delive
 For this, it is recommended that you do year time-stamp intervals (this makes the next step easier). 
 
 | Inputs        | Shorthand     | What is it?  | Notes |
-| ------------- |:-------------:| ------------:|
-| time-start     |       -s      | Start date (YYYY-MM-DD). |
-| time-end       |       -e      | End date (YYYY-MM-DD). |
-| outpath       |       -o      |    Path to where the textfile is saved. |
-| version       |       -v      |    006 or 061 | V006 to be discontinued |
-| data-type |           -t |        Optical or thermal
-| horizontal-minimum|    -hmin | Horizontal minimum MODIS sinusoidal tile|
-| horizontal-maximum|    -hmax | Horizontal maximum MODIS sinusoidal tile|
-| vertical-minimum|      -vmin | Vertical minimum MODIS sinusoidal tile |
-| vertical-maximum|      -vmax | Vertical maximum MODIS sinusoidal tile |
+| ------------- |:-------------:| ------------:| |
+| time-start     |       -s      | Start date (YYYY-MM-DD). |  |
+| time-end       |       -e      | End date (YYYY-MM-DD). | |
+| outpath       |       -o      |    Path to where the textfile is saved. | |
+| version       |       -v      |    006 or 061 | V006 to be discontinued
+| data-type |           -t |        Optical or thermal| |
+| horizontal-minimum|    -hmin | Horizontal minimum MODIS sinusoidal tile||
+| horizontal-maximum|    -hmax | Horizontal maximum MODIS sinusoidal tile||
+| vertical-minimum|      -vmin | Vertical minimum MODIS sinusoidal tile ||
+| vertical-maximum|      -vmax | Vertical maximum MODIS sinusoidal tile ||
 
 ## 1.2 02_LPDAAC_download.py
 Initiate data download. If the date range is too broad, the download may not be able to begin due to over-requesting from the archive centre. Shell scripting this is a recommendation.
