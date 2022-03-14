@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser(description="""
 ##Tasks:
 - Read image.
 - Calculate the sum of the pixels in a 3x3 box, which itterates across the whole image.
-- Save the new classification image.
+- Save the new classification image for areas scoring 6 and above.
 **************************************************************************""",
 formatter_class=argparse.RawDescriptionHelpFormatter)
 
@@ -35,31 +35,6 @@ def cumval(x):
     # Adds up all values.
     return x.sum()
 
-def erosion_dialation(array, eroded_output):
-    # Create an array of zeroes and another of ones.
-    arrZero, arrOne = np.zeros(array.shape), np.ones(array.shape)
-    # Where the array has a value more than 5 make the arrOne = True, and everywhere else (False) = arrZero.
-    array_mod = np.where(array>5, arrOne, arrZero)
-    #profile.update({'dtype':'uint8'})
-    profile.update({'nodata':'0'})
-    # Set structure - on how the array is being checked.
-    structure = ndimage.generate_binary_structure(2, 2)
-    # Erode, dialate and erode again.
-    #print(f"Eroding & dilating {os.path.split(input)[1]}...")
-    array_mod = morpho.binary_erosion(array_mod, structure=structure, iterations=1, border_value=0)
-    array_mod = morpho.binary_dilation(array_mod, structure=structure, iterations=2, border_value=0)
-    array_mod = morpho.binary_erosion(array_mod, structure=structure, iterations=1, border_value=0)
-
-    # Select the appropriate data.
-    array_mod = np.where(array_mod,1,0)
-    array_mod = np.array(array_mod, dtype=np.uint8)
-    
-    # The output needs to be the same shape an locality as the input, i.e. shape = 240,240. 
-    # This may be possible to be done saving the image with gdal over rasterio.
-    
-    with rasterio.open(eroded_output, 'w', **profile) as imgout:
-        imgout.write(array_mod, 1)
-        
 def noise_removal(array, eroded_output):
     # Create an array of zeroes and another of ones.
     arrZero, arrOne = np.zeros(array.shape, dtype=bool), np.ones(array.shape, dtype=bool)
@@ -71,7 +46,7 @@ def noise_removal(array, eroded_output):
     outDataset.SetProjection(proj)
     outDataset.SetGeoTransform(geom)
     outBand = outDataset.GetRasterBand(1)
-    outBand.WriteArray(array_erode) 
+    outBand.WriteArray(array_erode)
 
 #==========================================================
 # main:
@@ -102,20 +77,15 @@ if __name__ == "__main__":
             # Itterate through the image and calculate the sum of all pixels in the 3x3 box.
             # The 'constant' gives the values which lie on the size of the image a value of 0.
             window_filter = ndimage.generic_filter(threshold_array, cumval, size=(3,3), mode='constant')
-            
             # Heatmap saved for future purposes. 
-            heatmap_output = os.path.join(os.path.split(input)[0], "04" + os.path.basename(os.path.splitext(input)[0])[2:] + "_heatmap.tif")
+            heatmap_output = os.path.split(input)[0]+"/03b"+os.path.basename(os.path.splitext(input)[0])[3:].rsplit("classification")[0]+"heatmap.tif"
             with rasterio.open(heatmap_output, 'w', **profile) as h_output:
                 h_output.write(window_filter, 1)
-            
-            cols = gdal.Open(input).RasterXSize
-            rows = gdal.Open(input).RasterYSize
-            proj = gdal.Open(input).GetProjection()
-            geom = gdal.Open(input).GetGeoTransform()
-            # Erode and dialate the heatmap.
-            #erosion_dialation(window_filter, os.path.split(input)[0] + "/05" + os.path.basename(os.path.splitext(input)[0])[2:] + "_heatmap_eroded.tif")
+            img_open = gdal.Open(input)
+            cols, rows, proj, geom = img_open.RasterXSize, img_open.RasterYSize, img_open.GetProjection(), img_open.GetGeoTransform()
             # Noise removal from the heatmap.
-            noise_removal(window_filter, os.path.split(input)[0] + "/05" + os.path.basename(os.path.splitext(input)[0])[2:] + "_heatmap_eroded.tif")
+            nr_output = os.path.split(input)[0]+"/03c"+os.path.basename(os.path.splitext(input)[0])[3:].rsplit("classification")[0]+"heatmap_eroded.tif"
+            noise_removal(window_filter, os.path.split(input)[0] + "/03c" + os.path.basename(os.path.splitext(input)[0])[3:].rsplit("classification")[0]+ "heatmap_eroded.tif")
         print("Process complete - heatmap and masks produced.")
         #----------------------------------------------------------------------------------------------------
         # Run and errors:

@@ -72,18 +72,30 @@ while tries < 30:
 # -----------------------------------------DOWNLOAD FILE(S)-------------------------------------- #
 # Loop through and download all files to the directory specified above, and keeping same filenames
 for f in fileList:
-    product = f.rsplit('/', 2)[2].rsplit('.', 8)[1]
-    #version = f.rplsit('/', 2)[2].rsplit('.', 8)[4]
-    tile = f.rsplit('/', 2)[2].rsplit('.', 8)[3]
-    year = f.rsplit('/', 2)[1].rsplit('.',2)[0]
-    month = f.rsplit('/', 2)[1].rsplit('.',2)[1]
-    day = f.rsplit('/', 2)[1].rsplit('.',2)[2]
+    split = os.path.split(f)[1].rsplit('.')
+    # Check if downloading optical or thermal product.
+    if split[1] == "MYD09GA" and split[-1] == "jpg\n":
+        product = f.rsplit('/', 2)[2].rsplit('.', 8)[1]
+        #version = f.rplsit('/', 2)[2].rsplit('.', 8)[4]
+        tile = f.rsplit('/', 2)[2].rsplit('.', 8)[3]
+        year = f.rsplit('/', 2)[1].rsplit('.',2)[0]
+        month = f.rsplit('/', 2)[1].rsplit('.',2)[1]
+        day = f.rsplit('/', 2)[1].rsplit('.',2)[2]
 
-    if os.path.exists(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
+    elif split[0] == "MYDTBGA" and split[-1] == "hdf\n":
+        product = f.rsplit('/', 2)[2].rsplit('.', 6)[0]
+        #version = f.rplsit('/', 2)[2].rsplit('.', 6)[4]
+        tile = f.rsplit('/', 2)[2].rsplit('.', 6)[2]
+        year = f.rsplit('/', 2)[1].rsplit('.',2)[0]
+        month = f.rsplit('/', 2)[1].rsplit('.',2)[1]
+        day = f.rsplit('/', 2)[1].rsplit('.',2)[2]
+
+    if not os.path.exists(saveDir+"/"+tile+"/"+year+"/"+month+"/"+day+"/"):
+        os.makedirs(saveDir+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
+    saveName = os.path.join(saveDir+"/"+tile+"/"+year+"/"+month+"/"+day+"/", f.split('/')[-1].strip())
+
+    if os.path.exists(os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", ("01_" + f.split('/')[-1].strip()))) or os.path.exists(saveName):
         continue
-    else:
-        os.makedirs(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/")
-    saveName = os.path.join(saveDir+product+"/"+tile+"/"+year+"/"+month+"/"+day+"/", f.split('/')[-1].strip())
 
     # Create and submit request and download file
     with requests.get(f.strip(), verify=False, stream=True, auth=(netrc(netrcDir).authenticators(urs)[0], netrc(netrcDir).authenticators(urs)[2])) as response:
