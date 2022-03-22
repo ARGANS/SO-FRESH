@@ -2,8 +2,9 @@
 # @James Hickson | Argans UK | jhickson@argans.co.uk
 
 import os, sys
-import gdal, osr
+import gdal, glob, itertools, osr
 import pandas as pd
+from datetime import datetime, timedelta
 
 def modis_rename(path):
     # Rename MODIS imagery by adding "01" at the begining for easy distinguishability.
@@ -101,9 +102,53 @@ class modis_preprocess():
         outband.WriteArray(arr_img*0.01)
 
 
-    def tile_mosaic(self): ### LIST OF IMAGES
-        # Create a mosaic of from all tiles of an area i.e. Antarctica.
-        print()
+
+class modis_mosaic():
+    def __init__(self, data_fp, product):
+        self.data_fp=data_fp
+        self.product=product
+
+    def build_filepath(self, sdate, edate):
+
+        """ Find files based on dates & products for mosaic building. """
+
+        sdate=datetime.strptime(os.path.join(sdate), "%Y/%m/%d").date()
+        edate=datetime.strptime(os.path.join(edate), "%Y/%m/%d").date()
+        dates=[sdate+timedelta(days=x) for x in range((edate-sdate).days+1)]
+        if self.product == "MYD09GA" or "MYDTBGA":
+            ####### VERSION TO BE REMOVED ONCE 061 EXISTS!!! ###########
+            ### Create function where used can specify "antarctica" and it will select tiles for that region
+            ### And they can specify specific tiles to merge
+            tiles = sorted(glob.glob((self.data_fp+"MODIS/"+self.product+"_006/"+"01_tiles"
++"/*")))
+            dates = ["/".join((str(d.year), str("%02d" %d.month), str("%02d" %d.day))) for d in dates]
+        else: raiseRuntimeError("A MODIS product was not picked up, please check product entry")
+        mosaic=[]
+        for d in dates:
+            imgs=[]
+            for t in tiles:
+                if len(glob.glob((t+"/"+d+"/02*.tif"))) == 1: path=glob.glob((t+"/"+d+"/02*.tif"))[0]
+                else:raise RuntimeError("Multiple files have been detected in (t+'/'+d+) starting with 02, please delete the incorrect ones.")
+                imgs.append(path)
+            mosaic.append(imgs)
+        return(mosaic, dates)
+
+    def build_mosaic(self, imgs, date, r):
+        if self.product == "MYD09GA" or "MYDTBGA":
+            #### VERSION TO BE REMOVED ONCE 061 exists for MYDTBGA #####
+            outdir=(self.data_fp+"MODIS/"+self.product+"_006/02_mosaic/")+date
+            if not os.path.isdir(outdir): os.makedirs(outdir)
+            if r == True:outfile=outdir+("/02a_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.tif") 
+            else:outfile=outdir+("/02_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.tif")
+            os.system("gdal_merge.py -q -o %s %s"%(outfile, " ".join(imgs)))
+
+            return(outfile)
+
+    def resample(self, img):
+        xres, yres = 0.1, 0.1
+        outfile=(os.path.split(img)[0]+"/02"+os.path.basename(img)[3:])
+        os.system("gdal_translate -q -tr %s %s -r bilinear %s %s"%(xres, yres, img, outfile))
+
 
 class amsr2_preprocess():
     def __init__(self, img, epsg=4326):
@@ -112,7 +157,7 @@ class amsr2_preprocess():
 
     def extract_from_netcdf(self):
 
-        """ Pull the 'ice_conc' variable from the netCDF file and convert it to a tif"""
+        """ Pull the 'ice_conc' variable from the netCDF file and convert it to a tif."""
 
         date = self.img.rsplit("-")[-2]
         year, month, day = date[:-4], date[4:-2], date[6:]
@@ -122,7 +167,7 @@ class amsr2_preprocess():
 
         return(outdir+"/01a_"+os.path.basename(os.path.splitext(self.img)[0])[3:]+".tif")
 
-    def reproject(self):
+    def reproject(self, r):
 
         """ Assign known CRS projection to Sea Ice Concentration file."""
 
@@ -134,15 +179,21 @@ class amsr2_preprocess():
         lon_min=meta["NC_GLOBAL#geospatial_lon_min"]
         xsize=img.RasterXSize
         ysize=img.RasterYSize
+        if r == True:outfile=os.path.dirname(self.img)+"/02a_"+os.path.basename(os.path.splitext(self.img)[0])[4:]+".tif"
+        else:outfile=os.path.dirname(self.img)+"/02_"+os.path.basename(os.path.splitext(self.img)[0])[4:]+".tif"
+        os.system("gdalwarp -q -overwrite -ot Float32 -t_srs EPSG:%s -te %s %s %s %s -ts %s %s %s %s"%(self.epsg, lon_min, lat_min, lon_max, lat_max, xsize, ysize, self.img, outfile))
+
+        return(outfile)
+
+    def resample(self):
+
+        """ Resample AMSR2 product."""
+
+        xres, yres = 0.1, 0.1
+        sf = float(gdal.Open(self.img).GetMetadata()["ice_conc#scale_factor"])
+        outvrt=os.path.dirname(self.img)+"/02b_"+os.path.basename(os.path.splitext(self.img)[0])[4:]+".vrt"
         outfile=os.path.dirname(self.img)+"/02_"+os.path.basename(os.path.splitext(self.img)[0])[4:]+".tif"
-        os.system("gdalwarp -q -ot Float32 -t_srs EPSG:%s -te %s %s %s %s -ts %s %s %s %s"%(self.epsg, lon_min, lat_min, lon_max, lat_max, xsize, ysize, self.img, outfile))
 
-class resample():
-    def __init__(self, img)
-    self.img = img
-
-    def resample_MODIS(self):
-        print()
-
-    def resample_AMSR2(self):
-        print()
+        #os.system("gdal_translate -q -tr %s %s -r bilinear %s %s"%(xres, yres, self.img, outfile))
+        os.system("gdalbuildvrt -q -tr %s %s -r bilinear %s %s"%(xres, yres, outvrt, self.img))
+        os.system("gdal_calc.py --quiet -A %s --type='Float32' --outfile %s --calc 'A*%s'"%(outvrt, outfile, sf))
