@@ -2,7 +2,7 @@
 # @James Hickson | Argans UK | jhickson@argans.co.uk
 
 import os, sys
-import gdal, glob, itertools, osr
+import gdal, glob, itertools, osr, functools
 import pandas as pd
 from datetime import datetime, timedelta
 
@@ -17,10 +17,6 @@ def modis_rename(path):
                 os.rename(os.path.join(root, i), os.path.join(root, "01_"+i))
             elif i.startswith("ESACCI") and i.endswith(".nc"):
                 os.rename(os.path.join(root, i), os.path.join(root, "01_"+i))
-
-def fusion():
-    # Perform data fusion stage for given data.
-    print()
 
 class modis_preprocess():
     def __init__(self, img, csv=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "aux_files/modis_sinusoidal_tiles.csv")), epsg=4326):
@@ -119,8 +115,7 @@ class modis_mosaic():
             ####### VERSION TO BE REMOVED ONCE 061 EXISTS!!! ###########
             ### Create function where used can specify "antarctica" and it will select tiles for that region
             ### And they can specify specific tiles to merge
-            tiles = sorted(glob.glob((self.data_fp+"MODIS/"+self.product+"_006/"+"01_tiles"
-+"/*")))
+            tiles = sorted(glob.glob((self.data_fp+"MODIS/"+self.product+"_006/"+"01_tiles"+"/*")))
             dates = ["/".join((str(d.year), str("%02d" %d.month), str("%02d" %d.day))) for d in dates]
         else: raiseRuntimeError("A MODIS product was not picked up, please check product entry")
         mosaic=[]
@@ -197,3 +192,20 @@ class amsr2_preprocess():
         #os.system("gdal_translate -q -tr %s %s -r bilinear %s %s"%(xres, yres, self.img, outfile))
         os.system("gdalbuildvrt -q -tr %s %s -r bilinear %s %s"%(xres, yres, outvrt, self.img))
         os.system("gdal_calc.py --quiet -A %s --type='Float32' --outfile %s --calc 'A*%s'"%(outvrt, outfile, sf))
+
+def fusion(data_folder, sdate, edate, products):
+    # Perform data fusion stage for given data.
+    sdate=datetime.strptime(os.path.join(sdate), "%Y/%m/%d").date()
+    edate=datetime.strptime(os.path.join(edate), "%Y/%m/%d").date()
+    date_dt=[sdate+timedelta(days=x) for x in range((edate-sdate).days+1)]
+    dates = ["/".join((str(d.year), str("%02d" %d.month), str("%02d" %d.day))) for d in date_dt]
+    for d in dates:
+        imgs_4_fusion=[]
+        for p in products:
+            if p == "MYD09GA" or p == "MYDTBGA":fp=glob.glob((data_folder+"MODIS/"+p+"_006"+"/02_mosaic/"+d+"/02_*.tif"))
+            elif p == "SIC": fp =glob.glob((data_folder+"AMSR2/sic_extracted/"+d+"/02_*tif"))
+            imgs_4_fusion.append(fp)
+        imgs=functools.reduce(lambda x,y:x+y,(imgs_4_fusion))
+        if not os.path.isdir(data_folder+"fusion/"+"_".join(products)+"/"+d): os.makedirs(data_folder+"fusion/"+"_".join(products)+"/"+d)
+        outfile=data_folder+"fusion/"+"_".join(products)+"/"+d+"/02_"+"_".join(products)+"_"+"".join(d.split("/"))+"_ANTARCTICA.tif"
+        os.system("gdal_merge.py -q -of GTIFF -seperate -ot Float32 -o %s %s"%(outfile, " ".join(imgs)))
