@@ -46,9 +46,10 @@ if __name__ == "__main__":
 
         #==================================================================
         # Check for errors:
-        if not all([args.data_folder, args.start_date, args.end_date, args.product]):
-            raise RuntimeError("For mosaic creationg required inputs are missing.")
-        sys.exit()
+        #if not all([args.data_folder, args.start_date, args.end_date, args.product]):
+            #raise RuntimeError("For mosaic creationg required inputs are missing.")
+        #if args.product=="MYD09GA" or args.product=="MYDTBGA":pass
+        #else: raise RuntimeError("This product does not exist, consider using either MYD09GA or MYDTBGA")
         #==================================================================
         # Execute adjustments:
         if bool(args.input) == True:
