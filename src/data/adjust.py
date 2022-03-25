@@ -72,7 +72,8 @@ if __name__ == "__main__":
                     sic_img = tk.amsr2_preprocess(img).extract_from_netcdf()
                     rpjct_sic_img = tk.amsr2_preprocess(sic_img).reproject(args.resample)
                     if args.resample == True:
-                        tk.amsr2_preprocess(rpjct_sic_img).resample()
+                        resampled_sic_img = tk.amsr2_preprocess(rpjct_sic_img).resample()
+                        tk.amsr2_preprocess(resampled_sic_img).mask()
         elif bool(args.data_folder)==True and bool(args.start_date)==True and bool(args.end_date)==True and bool(args.product)==True:
             data_folder, sdate, edate, product=args.data_folder, args.start_date, args.end_date, args.product
             images, dates= tk.modis_mosaic(data_folder, product).build_filepath(sdate, edate)
