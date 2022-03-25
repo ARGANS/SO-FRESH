@@ -3,12 +3,17 @@
 
 import os, sys
 import gdal, glob, itertools, osr, functools
+import numpy as np
 import pandas as pd
+import scipy
+import skimage
+from skimage import morphology
 from datetime import datetime, timedelta
 
 def modis_rename(path):
-    # Rename MODIS imagery by adding "01" at the begining for easy distinguishability.
-    # This can be applied to MYD09GA and MYDTBGA products.
+
+    """ Rename MODIS imagery by adding "01" at the begining for easy distinguishability. """
+
     for root, dirs, files in os.walk(path):
         for i in files:
             if i.startswith("BROWSE") and i.endswith(".jpg"):
@@ -152,7 +157,7 @@ class amsr2_preprocess():
 
     def extract_from_netcdf(self):
 
-        """ Pull the 'ice_conc' variable from the netCDF file and convert it to a tif."""
+        """ Pull the 'ice_conc' variable from the netCDF file and convert it to a tif. """
 
         date = self.img.rsplit("-")[-2]
         year, month, day = date[:-4], date[4:-2], date[6:]
@@ -164,7 +169,7 @@ class amsr2_preprocess():
 
     def reproject(self, r):
 
-        """ Assign known CRS projection to Sea Ice Concentration file."""
+        """ Assign known CRS projection to Sea Ice Concentration file. """
 
         img = gdal.Open(self.img)
         meta = img.GetMetadata()
@@ -187,14 +192,26 @@ class amsr2_preprocess():
         xres, yres = 0.1, 0.1
         sf = float(gdal.Open(self.img).GetMetadata()["ice_conc#scale_factor"])
         outvrt=os.path.dirname(self.img)+"/02b_"+os.path.basename(os.path.splitext(self.img)[0])[4:]+".vrt"
-        outfile=os.path.dirname(self.img)+"/02_"+os.path.basename(os.path.splitext(self.img)[0])[4:]+".tif"
-
-        #os.system("gdal_translate -q -tr %s %s -r bilinear %s %s"%(xres, yres, self.img, outfile))
+        outfile=os.path.dirname(self.img)+"/02c_"+os.path.basename(os.path.splitext(self.img)[0])[4:]+".tif"
         os.system("gdalbuildvrt -q -tr %s %s -r bilinear %s %s"%(xres, yres, outvrt, self.img))
         os.system("gdal_calc.py --quiet -A %s --type='Float32' --outfile %s --calc 'A*%s'"%(outvrt, outfile, sf))
 
+        return(outfile)
+
+    def mask(self):
+
+        """ Generate mask to remove all data which is not the ice-sheet. """
+
+        arr = gdal.Open(self.img).ReadAsArray()
+        arr[np.where(arr>100)]=0
+        mask_arr=morphology.remove_small_objects(scipy.ndimage.binary_fill_holes(arr), min_size=500)
+        arr[np.where(mask_arr<=False)]=-9999
+        array_to_tiff(arr, self.img, os.path.dirname(self.img)+"/02_"+os.path.basename(os.path.splitext(self.img)[0])[4:]+".tif")
+
+
 def fusion(data_folder, sdate, edate, products):
-    # Perform data fusion stage for given data.
+
+    """ Fuse together data of given products """
     sdate=datetime.strptime(os.path.join(sdate), "%Y/%m/%d").date()
     edate=datetime.strptime(os.path.join(edate), "%Y/%m/%d").date()
     date_dt=[sdate+timedelta(days=x) for x in range((edate-sdate).days+1)]
@@ -209,3 +226,15 @@ def fusion(data_folder, sdate, edate, products):
         if not os.path.isdir(data_folder+"fusion/"+"_".join(products)+"/"+d): os.makedirs(data_folder+"fusion/"+"_".join(products)+"/"+d)
         outfile=data_folder+"fusion/"+"_".join(products)+"/"+d+"/02_"+"_".join(products)+"_"+"".join(d.split("/"))+"_ANTARCTICA.tif"
         os.system("gdal_merge.py -q -of GTIFF -seperate -ot Float32 -o %s %s"%(outfile, " ".join(imgs)))
+
+def array_to_tiff(array, image, outfile):
+
+    """ Write a 2D array to a 1 band image """
+    img=gdal.Open(image)
+    cols, rows, proj, geom = img.RasterXSize, img.RasterYSize, img.GetProjection(), img.GetGeoTransform()
+    outdataset=gdal.GetDriverByName("GTiff").Create(outfile, cols, rows, 1, gdal.GDT_Float32)
+    outdataset.SetProjection(proj)
+    outdataset.SetGeoTransform(geom)
+    outband=outdataset.GetRasterBand(1)
+    outband.WriteArray(array)
+
