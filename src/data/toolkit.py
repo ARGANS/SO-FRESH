@@ -127,10 +127,8 @@ class modis_mosaic():
         for d in dates:
             imgs=[]
             for t in tiles:
-                #print(len(glob.glob((t+"/"+d+"/02_*.tif"))))
                 files_lst = glob.glob((t+"/"+d+"/02_*.tif"))
                 if len(files_lst) == 1: path=files_lst[0]
-                #else:raise RuntimeError("Multiple files have been detected in (tiles/date) starting with 02, please delete the incorrect ones.")
                 imgs.append(path)
             mosaic.append(imgs)
         return(mosaic, dates)
@@ -140,7 +138,7 @@ class modis_mosaic():
             #### VERSION TO BE REMOVED ONCE 061 exists for MYDTBGA #####
             outdir=(self.data_fp+"MODIS/"+self.product+"_006/02_mosaic/")+date
             if not os.path.isdir(outdir): os.makedirs(outdir)
-            if r == True:outfile=outdir+("/02a_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.tif") 
+            if r == True:outfile=outdir+("/02a_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.tif")
             else:outfile=outdir+("/02_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.tif")
             os.system("gdal_merge.py -q -o %s %s"%(outfile, " ".join(imgs)))
 
@@ -225,13 +223,15 @@ def fusion(data_folder, sdate, edate, products):
             elif p == "SIC": fp =glob.glob((data_folder+"AMSR2/sic_extracted/"+d+"/02_*tif"))
             imgs_4_fusion.append(fp)
         imgs=functools.reduce(lambda x,y:x+y,(imgs_4_fusion))
-        if not os.path.isdir(data_folder+"fusion/"+"_".join(products)+"/"+d): os.makedirs(data_folder+"fusion/"+"_".join(products)+"/"+d)
-        outfile=data_folder+"fusion/"+"_".join(products)+"/"+d+"/02_"+"_".join(products)+"_"+"".join(d.split("/"))+"_ANTARCTICA.tif"
-        os.system("gdal_merge.py -o -q -of GTIFF -seperate -ot Float32 -o %s %s"%(outfile, " ".join(imgs)))
+        if len(imgs) == len(products):
+            if not os.path.isdir(data_folder+"fusion/"+"_".join(products)+"/"+d): os.makedirs(data_folder+"fusion/"+"_".join(products)+"/"+d)
+            outfile=data_folder+"fusion/"+"_".join(products)+"/"+d+"/02_"+"_".join(products)+"_"+"".join(d.split("/"))+"_ANTARCTICA.tif"
+            os.system("gdal_merge.py -o -q -of GTIFF -seperate -ot Float32 -o %s %s"%(outfile, " ".join(imgs)))
 
 def array_to_tiff(array, image, outfile):
 
     """ Write a 2D array to a 1 band image """
+
     img=gdal.Open(image)
     cols, rows, proj, geom = img.RasterXSize, img.RasterYSize, img.GetProjection(), img.GetGeoTransform()
     outdataset=gdal.GetDriverByName("GTiff").Create(outfile, cols, rows, 1, gdal.GDT_Float32)
