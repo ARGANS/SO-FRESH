@@ -127,8 +127,10 @@ class modis_mosaic():
         for d in dates:
             imgs=[]
             for t in tiles:
-                if len(glob.glob((t+"/"+d+"/02*.tif"))) == 1: path=glob.glob((t+"/"+d+"/02*.tif"))[0]
-                else:raise RuntimeError("Multiple files have been detected in (t+'/'+d+) starting with 02, please delete the incorrect ones.")
+                #print(len(glob.glob((t+"/"+d+"/02_*.tif"))))
+                files_lst = glob.glob((t+"/"+d+"/02_*.tif"))
+                if len(files_lst) == 1: path=files_lst[0]
+                #else:raise RuntimeError("Multiple files have been detected in (tiles/date) starting with 02, please delete the incorrect ones.")
                 imgs.append(path)
             mosaic.append(imgs)
         return(mosaic, dates)
@@ -225,7 +227,7 @@ def fusion(data_folder, sdate, edate, products):
         imgs=functools.reduce(lambda x,y:x+y,(imgs_4_fusion))
         if not os.path.isdir(data_folder+"fusion/"+"_".join(products)+"/"+d): os.makedirs(data_folder+"fusion/"+"_".join(products)+"/"+d)
         outfile=data_folder+"fusion/"+"_".join(products)+"/"+d+"/02_"+"_".join(products)+"_"+"".join(d.split("/"))+"_ANTARCTICA.tif"
-        os.system("gdal_merge.py -q -of GTIFF -seperate -ot Float32 -o %s %s"%(outfile, " ".join(imgs)))
+        os.system("gdal_merge.py -o -q -of GTIFF -seperate -ot Float32 -o %s %s"%(outfile, " ".join(imgs)))
 
 def array_to_tiff(array, image, outfile):
 
