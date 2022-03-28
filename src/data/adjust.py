@@ -5,6 +5,7 @@
 import argparse, argcomplete
 from argcomplete.completers import ChoicesCompleter, FilesCompleter
 import toolkit as tk
+from tqdm import tqdm
 import os, sys
 
 parser = argparse.ArgumentParser(description="""
@@ -39,7 +40,6 @@ if __name__ == "__main__":
         parser.add_argument("-e", "--end-date", required=False, help="Time upper bound (YYYY/MM/DD).")
         parser.add_argument("-p", "--product", required=False, help="Product to merge [MYD09GA, MYDTBGA].")
         parser.add_argument("-r", "--resample", required=False, action="store_true", help="For data to be resampled too, include '-r' in the command. This will currently be done to 0.1 (x & y) degrees resolution.")
-        #parser.add_argument("-t", "--tiles", required=False, nargs"+", help="")
         #parser.add_argument()
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
@@ -53,7 +53,7 @@ if __name__ == "__main__":
         #==================================================================
         # Execute adjustments:
         if bool(args.input) == True:
-            for img in args.input:
+            for img in tqdm(args.input):
                 filename = os.path.basename(img)
                 # Check if file requires to be renamed.
                 if filename.startswith(("BROWSE", "MYDTBGA", "ESACCI")) and filename.endswith((".jpg", ".hdf", ".nc")):
