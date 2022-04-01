@@ -1,0 +1,1586 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Baltic_SDN_BEC_colocations_v2r0</title><meta name="generator" content="MATLAB 9.6"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-06-30"><meta name="DC.source" content="Baltic_SDN_BEC_colocations_v2r0.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Flags script</a></li><li><a href="#4">Get SSS-satellite data within a given distance from each Argo float</a></li><li><a href="#5">Loop each year Colocate ref-2-Satellite</a></li><li><a href="#6">Save Colocation output</a></li><li><a href="#7">[1] Read SDN dataset</a></li><li><a href="#8">Do colocations through time</a></li><li><a href="#10">Colocate REF-2-satellite (Loop through each month)</a></li><li><a href="#12">Pre-lcoate vars_out (ref-2-SAT colocation yearly files) -  snippet -</a></li><li><a href="#14">[1] Load DATA</a></li><li><a href="#15">[1.1] Load and tidy up the reference dataset</a></li><li><a href="#17">[1] load Satellite SSS:</a></li><li><a href="#18">[1] Baltic+ Nominal, [2] Baltic Nodal Sampling, [3] Global BEC, [4] CCI+SSS</a></li><li><a href="#19">[1.2.1] Baltic+ [BEC-SSS] Nominal v1.0 20110101 - 20131227</a></li><li><a href="#20">[1.2.2] Baltic+ Nodal Sampling [version v1.0: 20110101 - 20180102]</a></li><li><a href="#21">load Baltic+ grid -to convert all products to the same grid</a></li><li><a href="#22">[1.2.3] Baltic-Global product (v001)</a></li><li><a href="#23">[1.2.4] CCI+SSS data (v01.07)</a></li><li><a href="#24">[1.2.5] Load Model in Baltic</a></li><li><a href="#25">[1.3] Grid SDN data to the smos-grid</a></li><li><a href="#26">[2] Select Satellite-SSS data at Float location (within r distance in km)</a></li><li><a href="#28">Satellite data at float location</a></li><li><a href="#29">[2.3] Argo Vertical profile interpolation</a></li><li><a href="#30">[2.3.1] Interpolate Z-direction (narrow depth levels)</a></li><li><a href="#31">[3] dSSS = SDN - SATELLITE</a></li><li><a href="#35">Remove empty floats (*optimize space)</a></li><li><a href="#36">save fn_out (with Argo-2-satellite colocations)</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [vars_out] = Baltic_SDN_BEC_colocations_v2r0(iyear,imonth,iregion,idata_type)
+</pre><pre class="codeinput"><span class="comment">%</span>
+<span class="comment">%</span>
+<span class="comment">% Syntax (function):</span>
+<span class="comment">% [vars_out] = Baltic_SDN_BEC_colocations(iyear,imonth,iregion,idata_type)</span>
+<span class="comment">%</span>
+<span class="comment">% Description</span>
+<span class="comment">% Make SDN-2-Satellite colocations whithin a searching</span>
+<span class="comment">% distance and within</span>
+<span class="comment">% a time window (i.e. &plusmn;7-days).</span>
+<span class="comment">% [1] The output from this script is to feed into Baltic_argo_BEC_analyses.m</span>
+<span class="comment">% [2] This script save colocations [Baltic_argo_BEC_colocations_VARS2SAVE.m]</span>
+<span class="comment">%</span>
+<span class="comment">% Use Seadatanet files prepared by BEC for validation SSS (Baltic+)</span>
+<span class="comment">%</span>
+<span class="comment">% Input</span>
+<span class="comment">% iyear, imonth</span>
+<span class="comment">% iregion: There are four Baltic+ study regions (see Baltic+ DUM, p. 28):</span>
+<span class="comment">% [1] Arkona Basin           [ArB] (55&deg;31'30.22"N,  16&deg;16'15.06"E)</span>
+<span class="comment">% [2] Bothian Sea            [BOS] (61&deg;55'50.19"N,  19&deg;14'46.24"E)</span>
+<span class="comment">% [3] Gulf of Finland        [GOF] (59&deg;35'55.07"N,  23&deg;07'27.96"E)</span>
+<span class="comment">% [4] Northern Baltic Proper [NBP] (57&deg;36'10.05"N,  19&deg;48'25.78"E)</span>
+<span class="comment">% [5] ALL-Baltic             [ALL]</span>
+<span class="comment">%</span>
+<span class="comment">% * for more informaiton about Baltic regions type "help Baltic_studyregion.m"</span>
+<span class="comment">%</span>
+<span class="comment">%</span>
+<span class="comment">%</span>
+<span class="comment">% data_type:   [1] Nominal, [3] Nodal Sampling,</span>
+<span class="comment">%              [6] Global BEC (v001);</span>
+<span class="comment">%              [7] CCI+SSS (v01.07);</span>
+<span class="comment">%              [8] Model (NEMO) data in Baltic</span>
+<span class="comment">%</span>
+<span class="comment">%</span>
+<span class="comment">% Output</span>
+<span class="comment">% vars_out is structure and Matlab (.mat) and NetCDF (.nc) files</span>
+<span class="comment">% with colocated profiles.</span>
+<span class="comment">%</span>
+<span class="comment">%</span>
+<span class="comment">% current version: v2r0 (2020/03/18) -</span>
+<span class="comment">%         [1] converted script into function;</span>
+<span class="comment">%         [2] split up colocations and stats in</span>
+<span class="comment">%             two different scripts. This script does colocation (only)</span>
+<span class="comment">%             to input in stats.</span>
+<span class="comment">%</span>
+<span class="comment">% History</span>
+<span class="comment">% v1r2 (2020/01/20) - original script to do colocations and stats</span>
+<span class="comment">%</span>
+<span class="comment">% =========================================================================</span>
+<span class="comment">% Author: rcatany</span>
+<span class="comment">%</span>
+<span class="comment">% =========================================================================</span>
+
+<span class="comment">% clc;</span>
+close <span class="string">all</span>
+
+<span class="comment">% switch off warning (there is something about interpolation)</span>
+warning(<span class="string">'off'</span>,<span class="string">'all'</span>);
+</pre><h2 id="3">Flags script</h2><pre class="codeinput">run_test = 0;    <span class="comment">% flag to run script (not to save figures);</span>
+save_output = 1; <span class="comment">% flag to save output [1], or not [0];</span>
+
+<span class="keyword">if</span> run_test == 1
+    clc
+    warning (<span class="string">'Baltic_seadatanet_BEC_colocation.m is in TEST MODE'</span>)
+
+    disp([<span class="string">'RUNNING TEST MODE. Figures and files might NOT BE SAVED'</span>])
+    prompt_msm = <span class="string">'Do you want to save script output? [1] yes, or [0] not ... '</span>;
+    save_output = input(prompt_msm);
+<span class="keyword">end</span>
+
+<span class="comment">% set the data_type</span>
+<span class="keyword">if</span> idata_type == 1
+    version_str = <span class="string">'plusv3r0'</span>;
+<span class="keyword">elseif</span> idata_type == 3
+    version_str = <span class="string">'v2r0'</span>;
+<span class="keyword">elseif</span> idata_type == 4
+    version_str = <span class="string">'v1r0_NOM'</span>;
+<span class="keyword">elseif</span> idata_type == 5
+    version_str = <span class="string">'v1r0_NS'</span>;
+<span class="keyword">elseif</span> idata_type == 6
+    version_str = <span class="string">'v001'</span>;
+<span class="keyword">elseif</span> idata_type == 7
+    version_str = <span class="string">'CCI+SSSv1.7'</span>;
+<span class="keyword">elseif</span> idata_type == 8
+    version_str = <span class="string">'REANALYSIS_PHY_003_011'</span>;
+
+<span class="keyword">end</span>
+</pre><pre class="codeoutput error">Not enough input arguments.
+
+Error in Baltic_SDN_BEC_colocations_v2r0 (line 74)
+if idata_type == 1
+</pre><h2 id="4">Get SSS-satellite data within a given distance from each Argo float</h2><pre class="codeinput">r = 25; <span class="comment">% Radius distance platform (in Km)</span>
+r_str = num2str(r);
+
+<span class="comment">% Areas at high-lats are about 25% bigger than at equator</span>
+lat_factor = 1.25;
+
+<span class="comment">% multiply lat_factor to get a more accurate sampling radius</span>
+r2 = r*lat_factor;
+
+depth_ref = 10; <span class="comment">% Reference depth (m), by gral. assumtion 10 m</span>
+
+ibasin = 9; <span class="comment">% Basin number: 9 (7 Arctic, 9 Baltic)</span>
+[xmin,xmax,ymin,ymax, basin_str] = map_lim_raf(ibasin);
+
+fg_save = 1; <span class="comment">% flag save figures [1]; or not [0];</span>
+fg_format = <span class="string">'png'</span>;
+
+path_root = (<span class="string">'/Volumes/Rogue/Data/'</span>);
+folder_data = ([path_root <span class="keyword">...</span>
+    <span class="string">'SSS/Baltic/BEC/Validation/indata/SDN/'</span>]);
+
+
+<span class="comment">% ==========================</span>
+<span class="comment">%</span>
+<span class="comment">% iyear = 2011:2013;</span>
+<span class="comment">% imonth = 1:12;</span>
+
+
+a = length(iyear);
+b = length(imonth);
+
+<span class="comment">% filename Argo BEC structure: argo_20110101_20110110.nc</span>
+ndays = 9; <span class="comment">% number of days contained in each BEC Argo file</span>
+
+
+
+
+<span class="comment">% Output variables to save</span>
+ref_vars_out = {<span class="keyword">...</span>
+    <span class="string">'SALT_irange'</span>,<span class="string">'TEMP_irange'</span>,<span class="string">'PRES_irange'</span>,<span class="keyword">...</span>
+    <span class="string">'lon_irange'</span>,<span class="string">'lat_irange'</span>,<span class="string">'time_irange'</span><span class="keyword">...</span>
+    <span class="string">'region'</span>,<span class="string">'basin_str'</span>};
+
+sat_vars_out = {<span class="keyword">...</span>
+    <span class="string">'sss_irange'</span>,<span class="keyword">...</span>
+    <span class="string">'sss_error_irange'</span>,<span class="keyword">...</span>
+    <span class="string">'lon_sss_irange'</span>,<span class="string">'lat_sss_irange'</span>,<span class="string">'version_str'</span>};
+
+colocated_vars_out = {<span class="keyword">...</span>
+    <span class="string">'sss_irange_mn'</span>,<span class="keyword">...</span>
+    <span class="string">'sss_irange_md'</span>,<span class="keyword">...</span>
+    <span class="string">'sss_error_irange_mn'</span>};
+
+save_vars_out = [ref_vars_out sat_vars_out colocated_vars_out];
+</pre><h2 id="5">Loop each year Colocate ref-2-Satellite</h2><p>pre-locate vars</p><pre class="codeinput"><span class="comment">% pre-lcoate Stats dSSS = SATELLITE minus ARGO</span>
+nTOT    = 500;  <span class="comment">% Total number of sat-to-argo colocations</span>
+ndepth  = 1;   <span class="comment">% number of depth levels</span>
+
+grid_size = 1/4; <span class="comment">% SMOS-grid size 1/4 (~0.25 km)</span>
+
+n = 9; <span class="comment">% add extra elements to the matrix</span>
+
+<span class="comment">% maximum number grid-points in irange + n extra elements</span>
+nele = (((r2/100)*4)/grid_size)+1+n;
+
+ncount = 0; <span class="comment">% set counter to zero</span>
+
+<span class="comment">% Colocatiion fn_out for each Regional study in the Baltic</span>
+<span class="keyword">if</span> strcmpi(iregion,<span class="string">'ARB'</span>) || iregion == 1<span class="comment">% Arkona Basin</span>
+    region = <span class="string">'ARB'</span>;
+
+<span class="keyword">elseif</span> strcmpi(iregion,<span class="string">'BOS'</span>)|| iregion == 2 <span class="comment">% Bothian Sea</span>
+    region = <span class="string">'BOS'</span>;
+
+<span class="keyword">elseif</span> strcmpi(iregion,<span class="string">'GOF'</span>)|| iregion == 3 <span class="comment">% Gulf of Finland</span>
+    region = <span class="string">'GOF'</span>;
+
+<span class="keyword">elseif</span> strcmpi(iregion,<span class="string">'NBP'</span>)|| iregion == 4 <span class="comment">% Gulf of Finland</span>
+    region = <span class="string">'NBP'</span>;
+
+<span class="keyword">elseif</span> strcmpi(iregion,<span class="string">'ALL'</span>) || iregion == 5 <span class="comment">% all-Baltic region stats</span>
+    region = <span class="string">'ALL'</span>;
+
+<span class="keyword">end</span>
+</pre><h2 id="6">Save Colocation output</h2><pre class="codeinput">folder_out = [path_root<span class="keyword">...</span>
+    <span class="string">'SSS/'</span> basin_str<span class="keyword">...</span>
+    <span class="string">'/BEC/Validation/indata/SDN/Colocations/monthly/'</span> version_str <span class="string">'/'</span> region <span class="string">'/'</span>];
+foldercheck_raf(folder_out);
+
+
+<span class="comment">% Make a log_file to record status of each ARGO-BEC file [2020/01/21]</span>
+folder_log = <span class="string">'/Volumes/Rogue/Data/SSS/Baltic/BEC/Validation/indata/'</span>;
+fn_log = [folder_log <span class="string">'SDN_MISSING_20200121.txt'</span>];
+
+folder_figs = <span class="string">'/Volumes/Rogue/scratch/Validation/'</span>;
+
+
+folder_figs = [folder_figs basin_str <span class="string">'/SDN/'</span> region <span class="string">'/'</span>];
+
+<span class="keyword">if</span> fg_save == 1
+    foldercheck_raf(folder_figs); <span class="comment">%! make folder_figs</span>
+<span class="keyword">end</span>
+</pre><h2 id="7">[1] Read SDN dataset</h2><pre class="codeinput"><span class="comment">% Future releases might chnage filenanme of SDB dataset</span>
+fn_in = [folder_data<span class="keyword">...</span>
+    <span class="string">'data_from_SDN_2015-09_TS_BalticSea_QC_done_v2_filtered.nc'</span>];
+
+
+<span class="comment">% function to read SDN dataset</span>
+[TT] = rd_SDN (fn_in);
+
+lon = TT.lon;
+lat = TT.lat;
+
+time_number = TT.time_number;
+time_str1 = datestr(time_number(1),<span class="string">'yyyymmdd'</span>);
+time_str2 = datestr(time_number(end),<span class="string">'yyyymmdd'</span>);
+
+SALT = TT.SSS_SDN;
+TEMP = TT.SST_SDN;
+PRES = TT.depth_SDN;
+
+platform_type = TT.metavar3; <span class="comment">% [B]: Bottle; or [C]: CTD</span>
+platform_ID = TT.metavar5;
+vars_measured = TT.metavar12;
+
+z_grid = 0.5; <span class="comment">% vertical interp at 0.5 m</span>
+
+<span class="comment">% function to make vertical intp (works with any prof., not only Argo)</span>
+[t_intp,s_intp,p_intp] = zinterp1_ARGO(TEMP,SALT,PRES,z_grid);
+
+SALT = s_intp;
+TEMP = t_intp;
+PRES = p_intp;
+
+ind = PRES &gt; 100;
+
+SALT(ind) = NaN;
+TEMP(ind) = NaN;
+PRES(ind) = NaN;
+
+clear <span class="string">*intp</span>
+
+
+<span class="comment">% ========================</span>
+</pre><h2 id="8">Do colocations through time</h2><pre class="codeinput"><span class="keyword">for</span> yy = 1:length(iyear)
+    iYEAR = iyear(yy);
+
+    disp([<span class="string">'Processing SDN-2-Satellite colocation '</span><span class="keyword">...</span>
+        basin_str <span class="string">' '</span> num2str(iYEAR)]);
+
+    <span class="keyword">for</span> mm = 1:length(imonth)
+</pre><pre class="codeinput">        iMONTH = imonth(mm);
+
+        <span class="comment">% =============================</span>
+        <span class="comment">% fn_out (.mat)</span>
+        <span class="comment">% %         fn_out = [folder_out 'SDN_'...</span>
+        <span class="comment">% %             sprintf('%02.0f',depth_ref) 'm_COLOCATIONS_'...</span>
+        <span class="comment">% %             sprintf('%02.0f',iYEAR)...</span>
+        <span class="comment">% %             '.mat'];</span>
+
+        fn_out = [folder_out basin_str <span class="string">'_'</span> region <span class="string">'_SDN_R'</span> r_str <span class="string">'_'</span><span class="keyword">...</span>
+            sprintf(<span class="string">'%02.0f'</span>,depth_ref) <span class="string">'m_COLOCATIONS_'</span><span class="keyword">...</span>
+            sprintf(<span class="string">'%02.0f'</span>,iYEAR) sprintf(<span class="string">'%02.0f'</span>,iMONTH) <span class="string">'_'</span><span class="keyword">...</span>
+            version_str <span class="string">'.mat'</span>];
+
+
+        <span class="comment">% =================================</span>
+</pre><h2 id="10">Colocate REF-2-satellite (Loop through each month)</h2><pre class="codeinput">        fn_out_exist = exist(fn_out,<span class="string">'file'</span>);
+
+        <span class="keyword">if</span> fn_out_exist ~= 2 || run_test == 1
+</pre><h2 id="12">Pre-lcoate vars_out (ref-2-SAT colocation yearly files) -  snippet -</h2><pre class="codeinput">            run <span class="string">Baltic_SDN_BEC_colocations_VARS2SAVE.m</span> <span class="comment">% -  snippet -</span>
+
+            <span class="comment">% ==========================</span>
+
+            disp([<span class="string">'year: '</span> num2str(iYEAR)<span class="keyword">...</span>
+                <span class="string">' month: '</span> sprintf(<span class="string">'%02.0f'</span>,iMONTH)])
+
+            <span class="comment">% folder name with BEC-ARGO data</span>
+            folder_in = ([folder_data<span class="keyword">...</span>
+                num2str(iYEAR) <span class="string">'/'</span> sprintf(<span class="string">'%02.0f'</span>,iMONTH) <span class="string">'/'</span>]);
+
+            <span class="comment">% number of days in month</span>
+            idays = calendar(iYEAR,iMONTH);
+            idays (idays == 0) = [];
+            idays = sort(idays);
+
+            <span class="keyword">for</span> dd = 1: length(idays)
+</pre><pre class="codeinput">                iDAY = idays(dd);
+                itime_start = datenum(iYEAR,iMONTH,iDAY);
+                itime_end = itime_start + ndays;
+
+                iTIME = [itime_start itime_end]; <span class="comment">% keep time in vector</span>
+
+                <span class="comment">% &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span>
+                <span class="comment">% load SDN-matlab file [fn]</span>
+                <span class="comment">%                 fn = (['argo_' ...</span>
+                <span class="comment">%                     datestr(itime_start,'yyyymmdd') '_'...</span>
+                <span class="comment">%                     datestr(itime_end,'yyyymmdd')]);</span>
+                <span class="comment">%</span>
+                <span class="comment">%                 fn_in = ([folder_in fn '.mat']);</span>
+                <span class="comment">% &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span>
+
+                <span class="comment">% ===============</span>
+</pre><h2 id="14">[1] Load DATA</h2><h2 id="15">[1.1] Load and tidy up the reference dataset</h2><pre class="codeinput">                <span class="keyword">if</span> ismember(itime_start,time_number) == 1
+
+                    ind = time_number == itime_start;
+
+                    lon_alfa = lon(ind);
+                    lat_alfa = lat(ind);
+
+                    platform_type_alfa = platform_type(ind);
+                    platform_ID_alfa = platform_ID(ind);
+
+                    time_number_alfa = time_number(ind);
+
+                    SALT_alfa = SALT(:,ind);
+                    TEMP_alfa = TEMP(:,ind);
+                    PRES_alfa = PRES(:,ind);
+
+                    <span class="comment">% station close to land are empty &lt;??&gt;</span>
+                    ind2 = any(SALT_alfa);
+
+                    lon_alfa(~ind2) = [];
+                    lat_alfa(~ind2) = [];
+                    time_number_alfa(~ind2) = [];
+
+                    SALT_alfa(:,~ind2) = [];
+                    TEMP_alfa(:,~ind2) = [];
+                    PRES_alfa(:,~ind2) = [];
+
+                    clear <span class="string">ind*</span>
+
+                    <span class="comment">% Regional study in the Baltic</span>
+                    <span class="keyword">if</span> strcmpi(region,<span class="string">'ARB'</span>) <span class="comment">% North Atlantic</span>
+
+                        ind_reg = lon_alfa &gt;=15 &amp; lon_alfa &lt;= 18  &amp; lat_alfa &gt; 53 &amp; lat_alfa &lt;= 58;
+
+                    <span class="keyword">elseif</span> strcmpi(region,<span class="string">'BOS'</span>)
+
+                        ind_reg = lon_alfa &gt;= 18 &amp; lon_alfa &lt;= 23 &amp; lat_alfa &gt; 60 &amp; lat_alfa &lt;= 64;
+
+                    <span class="keyword">elseif</span> strcmpi(region,<span class="string">'GOF'</span>)
+
+                        ind_reg = lon_alfa &gt;= 23 &amp; lon_alfa &lt;= 26 &amp; lat_alfa &gt; 58 &amp; lat_alfa &lt;= 62;
+
+                    <span class="keyword">elseif</span> strcmpi(region,<span class="string">'NBP'</span>)
+
+                        ind_reg = lon_alfa &gt;= 18 &amp; lon_alfa &lt;= 23 &amp; lat_alfa &gt; 56 &amp; lat_alfa &lt;= 59;
+
+                    <span class="keyword">elseif</span> strcmpi(region,<span class="string">'ALL'</span>) <span class="comment">% all-Arctic region stats</span>
+                        ind_reg = ones(size(lon_alfa));
+
+                    <span class="keyword">end</span>
+
+                    lon_alfa(~ind_reg) = [];
+                    lat_alfa(~ind_reg) = [];
+                    time_number_alfa(~ind_reg) = [];
+                    SALT_alfa(:,~ind_reg) = [];
+                    TEMP_alfa(:,~ind_reg) = [];
+                    PRES_alfa(:,~ind_reg) = [];
+                    clear <span class="string">ind_reg</span>
+
+
+                    <span class="keyword">if</span> ~isempty(lon_alfa) &amp;&amp; ~isempty(lat_alfa) &amp;&amp; sum(any(SALT_alfa))~=0
+</pre><pre class="codeinput">                        <span class="comment">% Cases with more than one float (profile) in one file</span>
+                        nprof1 = length(lon_alfa(:,1));
+                        nprof2 = length(lat_alfa(:,1));
+
+                        <span class="comment">% Argo lon-lat must be same size</span>
+                        <span class="keyword">if</span> size(lon_alfa) == size(lat_alfa)
+                            nprof = nprof1;
+                        <span class="keyword">else</span>
+                            error([<span class="keyword">...</span>
+                                <span class="string">'Number of ref longitudes and latitudes'</span><span class="keyword">...</span>
+                                <span class="string">' must be equal'</span>])
+                        <span class="keyword">end</span>
+
+                        <span class="comment">% Make PRES to be same size as SALT (and TEMP)</span>
+                        [a1,b1] = size(SALT_alfa);
+                        [a2,b2] = size(PRES_alfa);
+
+                        <span class="keyword">if</span> b1 ~= b2
+                            PRES_alfa = repmat(PRES_alfa,1,b1);
+                        <span class="keyword">end</span>
+</pre><h2 id="17">[1] load Satellite SSS:</h2><h2 id="18">[1] Baltic+ Nominal, [2] Baltic Nodal Sampling, [3] Global BEC, [4] CCI+SSS</h2><h2 id="19">[1.2.1] Baltic+ [BEC-SSS] Nominal v1.0 20110101 - 20131227</h2><pre class="codeinput">                        <span class="keyword">if</span> idata_type == 4 &amp;&amp; itime_start &gt;= datenum(2011,02,01) &amp;&amp; itime_start &lt;= datenum(2013,12,27)
+                            data_type = idata_type; <span class="comment">% Baltic+ (SSS-BEC NM v1.0)</span>
+
+                            [TT] = rd_smos_L4_BEC_v1r3(itime_start,ibasin,data_type);
+
+                            lon_sss1 = TT.lon;
+                            lat_sss1 = TT.lat;
+
+                            sss = TT.sss;
+                            sss_error = TT.sss_error;
+
+                            lon_sss = lon_sss1;
+                            lat_sss = lat_sss1;
+
+                        <span class="keyword">elseif</span> idata_type == 4 &amp;&amp; (itime_start &lt; datenum(2011,02,01) || itime_start &gt; datenum(2019,08,31))
+                            sss = nan;
+                            lon_sss = NaN;
+                            lat_sss = NaN;
+                        <span class="keyword">end</span>
+</pre><h2 id="20">[1.2.2] Baltic+ Nodal Sampling [version v1.0: 20110101 - 20180102]</h2><pre class="codeinput">                        <span class="keyword">if</span> idata_type == 5 &amp;&amp; itime_start &gt;= datenum(2011,02,01) &amp;&amp; itime_start &lt;= datenum(2013,12,27)
+                            data_type = idata_type; <span class="comment">% Baltic+ (SSS-BEC NS v1.0)</span>
+
+                            [TT] = rd_smos_L4_BEC_v1r3(itime_start,ibasin,data_type);
+
+                            lon_sss1 = TT.lon;
+                            lat_sss1 = TT.lat;
+
+                            sss = TT.sss;
+                            sss_error = TT.sss_error;
+
+                            lon_sss = lon_sss1;
+                            lat_sss = lat_sss1;
+
+                        <span class="keyword">elseif</span> idata_type == 5 &amp;&amp; (itime_start &lt; datenum(2011,02,01) || itime_start &gt; datenum(2019,08,31))
+                            sss = nan;
+                            lon_sss = NaN;
+                            lat_sss = NaN;
+                        <span class="keyword">end</span>
+</pre><h2 id="21">load Baltic+ grid -to convert all products to the same grid</h2><pre class="codeinput">                        <span class="keyword">if</span> idata_type == 6 || idata_type == 7 || idata_type == 8
+
+                            data_type = 5;
+                            <span class="comment">% store Baltic+ grid (lon/lat)</span>
+                            folder_grid = ([path_root <span class="keyword">...</span>
+                                <span class="string">'SSS/'</span> basin_str <span class="string">'/BEC/Baltic_grid/'</span>]);
+
+                            fn_grid = [folder_grid <span class="string">'Baltic_plusv1.0_grid.mat'</span>];
+
+                            <span class="keyword">if</span> exist(fn_grid,<span class="string">'file'</span>) ~= 2
+                                [TT] = rd_smos_L4_BEC_v1r3(itime_start,ibasin,data_type);
+
+                                lon_sss = TT.lon;
+                                lat_sss = TT.lat;
+
+                                <span class="comment">% save Arctic grid</span>
+                                folder_grid = ([<span class="string">'/Volumes/Rogue/Data/SSS/Baltic/BEC/'</span> basin_str <span class="string">'_grid/'</span>]);
+                                foldercheck_raf(folder_grid);
+
+                                save (fn_grid,<span class="string">'lon_sss'</span>,<span class="string">'lat_sss'</span>);
+
+                            <span class="keyword">else</span>
+                                load (fn_grid)
+                            <span class="keyword">end</span>
+                        <span class="keyword">end</span>
+</pre><h2 id="22">[1.2.3] Baltic-Global product (v001)</h2><pre class="codeinput">                        <span class="keyword">if</span> idata_type == 6 &amp;&amp; iYEAR &lt; 2010
+                            data_type = 6;
+                            [TT] = rd_smos_L4_BEC_v1r3(itime_start,ibasin,data_type);
+
+                            sss_beta = TT.sss;
+
+                            lon_beta = TT.lon;
+                            lat_beta = TT.lat;
+
+                            <span class="comment">% homogenize grid (global product to Baltic+)</span>
+                            [sss_beta2] = griddata(lon_beta,lat_beta,sss_beta,lon_sss,lat_sss);
+
+                            ind = lon_sss &gt;= xmin &amp; lon_sss &lt;= xmax |<span class="keyword">...</span>
+                                lat_sss &gt;= ymin &amp; lat_sss &lt;= ymax ;
+
+                            sss_beta2 (ind == 0) = NaN;
+
+                            sss = sss_beta2;
+                            sss_error = nan(size(sss));
+
+                            clear <span class="string">*_beta*</span> <span class="string">ind</span> <span class="string">TT</span>; <span class="comment">% clear work space</span>
+
+                        <span class="keyword">elseif</span> idata_type == 6 &amp;&amp; iYEAR &gt;=2010
+                            sss = nan;
+                            lon_sss = NaN;
+                            lat_sss = NaN;
+
+
+                        <span class="keyword">end</span>
+</pre><h2 id="23">[1.2.4] CCI+SSS data (v01.07)</h2><p>CCI+SSS data: 20100106 - 20181101</p><pre class="codeinput">                        <span class="keyword">if</span> idata_type == 7 &amp;&amp; (itime_start &gt;= datenum(2011,01,01) &amp;&amp; itime_start &lt;= datenum(2018,11,01))
+
+                            plot_cci_ex = 0;
+                            cci_product = 1; <span class="comment">% [1] '7-days', or [2] '30-days' product</span>
+                            [TT] = rd_sss_cci(itime_start,ibasin,cci_product,plot_cci_ex);
+
+                            sss_beta = TT.sss;
+
+                            sss_error_beta = TT.sss_bias_std;
+
+                            <span class="comment">% get lat/lon from Baltic+</span>
+                            lon_sss1 = lon_sss;
+                            lat_sss1 = lat_sss;
+
+                            lon_beta = TT.lon;
+                            lat_beta = TT.lat;
+
+                            <span class="comment">% Grid Baltic product to the same grid (all in</span>
+                            <span class="comment">% Baltic+ grid)</span>
+                            sss = griddata(lon_beta,lat_beta,sss_beta,lon_sss1,lat_sss1);
+                            sss_error = griddata(lon_beta,lat_beta,sss_error_beta,lon_sss1,lat_sss1);
+
+                            lon_sss = lon_sss1;
+                            lat_sss = lat_sss1;
+
+                            clear <span class="string">lon_sss1</span> <span class="string">lat_sss1</span> <span class="string">*_beta*</span>
+
+                        <span class="keyword">elseif</span> idata_type == 7 &amp;&amp; (itime_start &lt; datenum(2011,01,01) || itime_start &gt; datenum(2018,11,01))
+                            sss = nan;
+                            lon_sss = NaN;
+                            lat_sss = NaN;
+
+                        <span class="keyword">end</span>
+</pre><h2 id="24">[1.2.5] Load Model in Baltic</h2><pre class="codeinput">                        <span class="keyword">if</span> idata_type == 8 &amp;&amp; itime_start &gt;= datenum(2011,01,01) &amp;&amp; itime_start &lt;= datenum(2013,12,16)
+
+                            grid2baltic = 0; <span class="comment">% grid model output to Baltic grid</span>
+                            [YY,MM,DD] = datevec(itime_start);
+
+                            disp([<span class="string">'model at: '</span> datestr(itime_start)])
+
+                            data_type = idata_type; <span class="comment">% Baltic+ MODEL</span>
+
+                            [TT] = nemo_rd_BEC_Baltic_FUN (YY,MM,DD,ibasin,grid2baltic);
+
+                            sss_beta = TT.SSS_model;
+
+                            <span class="comment">% get lat/lon from Baltic+</span>
+                            lon_sss1 = lon_sss;
+                            lat_sss1 = lat_sss;
+
+                            lon_beta = TT.lon;
+                            lat_beta = TT.lat;
+
+                            <span class="comment">% Grid Baltic product to the same grid (all in</span>
+                            <span class="comment">% Baltic+ grid)</span>
+                            sss = griddata(lon_beta,lat_beta,sss_beta,lon_sss1,lat_sss1);
+
+                            sss_error = nan(size(sss));
+
+                            lon_sss = lon_sss1;
+                            lat_sss = lat_sss1;
+
+                            clear <span class="string">lon_sss1</span> <span class="string">lat_sss1</span> <span class="string">*_beta*</span>
+
+                        <span class="keyword">elseif</span> idata_type == 8 &amp;&amp; (itime_start &lt; datenum(2011,01,01) || itime_start &gt; datenum(2013,12,27))
+                            sss = nan;
+                            lon_sss = NaN;
+                            lat_sss = NaN;
+                        <span class="keyword">end</span>
+                        <span class="comment">% =================</span>
+</pre><h2 id="25">[1.3] Grid SDN data to the smos-grid</h2><pre class="codeinput">                        [lon_grid,lat_grid] = <span class="keyword">...</span>
+                            griddata_raf(lon_alfa,lat_alfa,lon_sss,lat_sss);
+
+                        <span class="comment">% plot example of gridded and non-gridded data</span>
+                        plot_example = 0;
+
+                        <span class="keyword">if</span> plot_example == 1
+                            nn =1;
+                            run <span class="string">Baltic_seadatanet_BEC_colocations_PLOT.m</span>
+                        <span class="keyword">end</span>
+</pre><h2 id="26">[2] Select Satellite-SSS data at Float location (within r distance in km)</h2><pre class="codeinput">                        <span class="keyword">for</span> nn = 1: nprof
+
+                            <span class="comment">% keep Argo lon/lat gridded to smos-grid</span>
+                            <span class="keyword">if</span> nn == 1
+                                lon_alfa = lon_grid;
+                                lat_alfa = lat_grid;
+                                clear <span class="string">lon_grid</span> <span class="string">lat_grid</span> <span class="string">lon_model</span> <span class="string">lat_model</span>
+                            <span class="keyword">end</span>
+
+                            DIST = Distance(lon_alfa(nn),lat_alfa(nn),lon_sss,lat_sss);
+                            irange = find(DIST &lt;= r2);
+
+                            Ln = length(irange);
+
+                            <span class="keyword">if</span> Ln &gt;= 1
+</pre><pre class="codeinput">                                ncount = ncount+1;
+
+                                <span class="comment">% to reset "repetition profile check"</span>
+                                rep_prof = -1;
+</pre><h2 id="28">Satellite data at float location</h2><pre class="codeinput">                                sss_irange (1:Ln,ncount) = sss(irange);
+
+                                sss_error_irange (1:Ln,ncount) = sss_error(irange);
+
+                                sss_irange_mn (ncount) = nanmean(sss(irange));
+
+                                sss_irange_md (ncount) = nanmedian(sss(irange));
+
+                                sss_error_irange_mn (ncount) = nanmean(sss_error(irange));
+
+                                sss_error_irange_md (ncount) = nanmedian(sss_error(irange));
+
+                                lon_sss_irange (1:Ln,ncount) = lon_sss(irange);
+                                lat_sss_irange (1:Ln,ncount) = lat_sss(irange);
+</pre><h2 id="29">[2.3] Argo Vertical profile interpolation</h2><pre class="codeinput">                                [a,b] = size(SALT_alfa);
+
+                                xROW = 1:a;
+
+                                <span class="comment">% nprof_irange (1,ncount) = nprof;</span>
+
+                                lon_irange (1,ncount) = lon_alfa(nn);
+                                lat_irange (1,ncount) = lat_alfa(nn);
+
+                                time_irange (ncount) = time_number_alfa(nn);
+
+                                platform_type_irange(1,ncount) = char(platform_type_alfa(nn));
+                                platform_ID_irange(1,ncount) = char(platform_ID_alfa(nn));
+
+                                PRES_irange (xROW,ncount) = PRES_alfa(:,nn);
+                                SALT_irange (xROW,ncount) = SALT_alfa(:,nn);
+                                TEMP_irange (xROW,ncount) = TEMP_alfa(:,nn);
+
+                                clear <span class="string">a</span> <span class="string">b</span>
+</pre><h2 id="30">[2.3.1] Interpolate Z-direction (narrow depth levels)</h2><pre>                               % Interpolation specs: Grid dimensions
+                               pres1 = 0;              % min pres bin
+                               pres2 = max(PRES_alfa); % max depth (m)
+                               z_grid = 0.5;           % interpolant distance (m) between depth levels</pre><pre>                               TEMP1 = TEMP_alfa(:,nn);
+                               SALT1 = SALT_alfa(:,nn) ;
+                               PRES1 = PRES_alfa(:,nn) ;</pre><pre>                               % interpolation function
+                               [TEMP_beta_intp,SALT_beta_intp,PRES_beta_intp] =...
+                                   zinterp1_ARGO(TEMP1,SALT1,PRES1,z_grid);</pre><pre>                               [a,b] = size(TEMP_beta_intp);</pre><pre>                               TEMP_intp(1:a,ncount) = TEMP_beta_intp;
+                               SALT_intp(1:a,ncount) = SALT_beta_intp;
+                               PRES_intp(1:a,ncount) = PRES_beta_intp;</pre><pre>                               clear a b *_beta</pre><h2 id="31">[3] dSSS = SDN - SATELLITE</h2><p>% Done by snippet "Baltic_SDN_colocations_stats.m"</p><pre class="codeinput">                            <span class="keyword">end</span>
+                        <span class="keyword">end</span>; clear <span class="string">*_alfa</span> <span class="string">*_beta*</span>
+
+                        <span class="comment">%                     elseif isempty(lon) || isempty(lat)</span>
+                        <span class="comment">%                         msg_log = ([fn_in ' EMPTY_FILE']);</span>
+                        <span class="comment">%                         make_LOGFILE(fn_log,msg_log);</span>
+</pre><pre class="codeinput">                    <span class="keyword">end</span>
+
+                <span class="keyword">elseif</span> exist(fn_in,<span class="string">'file'</span>) == 0
+                    <span class="comment">% write a log_file, recording the Argo (.mat) files</span>
+                    msg_log = ([fn_in <span class="string">' MISSING_FILE'</span>]);
+                    make_LOGFILE(fn_log,msg_log);
+                <span class="keyword">end</span>
+</pre><pre class="codeinput">            <span class="keyword">end</span>
+
+            <span class="comment">%         end; clear mm dd TEMP SALT TEMP1 SALT1 lon lat</span>
+</pre><h2 id="35">Remove empty floats (*optimize space)</h2><pre class="codeinput">            [a,b] = size(lon_irange);
+
+            <span class="comment">% index empty floats (ie. Empty salt and temp)</span>
+            ind1 = (all(isnan(SALT_irange),1));
+            ind2 = (all(isnan(TEMP_irange),1));
+
+            ind = ind1 &amp; ind2;
+
+            <span class="keyword">if</span> ~isempty (ind)
+
+                <span class="comment">% [BUG] Issue relating to the removing nan (columns/rows) --</span>
+                <span class="comment">% fixed (badly) with a dirty for-loop and if-statements</span>
+
+                <span class="keyword">for</span> nn = 1:length(save_vars_out)
+
+                    eval([<span class="string">'var_beta = '</span> save_vars_out{nn} <span class="string">';'</span>]);
+
+                    <span class="comment">% To remove platform profiles (NOT depth levels)</span>
+                    [a2,b2] = size(var_beta);
+
+                    <span class="keyword">if</span> b2 == b
+                        eval([save_vars_out{nn} <span class="string">'(:,ind) = [];'</span>]);
+
+                    <span class="keyword">elseif</span> a2 == b
+                        eval([save_vars_out{nn} <span class="string">'(ind,:) = [];'</span>]);
+                    <span class="keyword">end</span>
+
+                <span class="keyword">end</span>
+
+            <span class="keyword">end</span>
+            clear <span class="string">*beta*</span>
+</pre><h2 id="36">save fn_out (with Argo-2-satellite colocations)</h2><pre class="codeinput">            disp({<span class="string">'New file with SDN-2-satellite colocations '</span>; fn_out})
+
+            save(fn_out,save_vars_out{:})
+</pre><pre class="codeinput">        <span class="keyword">elseif</span> fn_out_exist == 2
+            load(fn_out);
+
+        <span class="keyword">else</span>
+            clc
+            warning ([<span class="string">'Missing Colocations file: '</span> fn_out])
+
+            <span class="comment">% write a log_file, recording the Argo (.mat) files</span>
+            msg_log = ([fn_in <span class="string">' MISSING_FILE'</span>]);
+            make_LOGFILE(fn_log,msg_log);
+        <span class="keyword">end</span>
+</pre><pre class="codeinput">    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+
+
+
+<span class="comment">% Setup function output</span>
+TT = struct;
+
+<span class="keyword">for</span> nn = 1:length(save_vars_out)
+    this_param = save_vars_out{nn};
+
+    eval([<span class="string">'TT.'</span> this_param <span class="string">'= '</span> this_param <span class="string">';'</span>]);
+
+<span class="keyword">end</span>
+
+
+vars_out = TT;
+clear <span class="string">TT</span>
+
+
+
+<span class="comment">% END-OF-SCRIPT</span>
+</pre><pre class="codeoutput">Exception in thread "AWT-EventQueue-0": java.lang.ClassCastException: javax.swing.plaf.basic.BasicComboBoxUI cannot be cast to com.jidesoft.plaf.ExComboBoxUI
+	at com.jidesoft.grid.JideTable.removeEditor(Unknown Source)
+	at com.jidesoft.grid.JideTable.editingStopped(Unknown Source)
+	at javax.swing.AbstractCellEditor.fireEditingStopped(AbstractCellEditor.java:141)
+	at javax.swing.AbstractCellEditor.stopCellEditing(AbstractCellEditor.java:85)
+	at com.jidesoft.grid.ExComboBoxCellEditor.stopCellEditing(Unknown Source)
+	at com.jidesoft.grid.JideTable$s_.propertyChange(Unknown Source)
+	at java.beans.PropertyChangeSupport.fire(PropertyChangeSupport.java:335)
+	at java.beans.PropertyChangeSupport.firePropertyChange(PropertyChangeSupport.java:328)
+	at java.beans.PropertyChangeSupport.firePropertyChange(PropertyChangeSupport.java:263)
+	at java.awt.KeyboardFocusManager.firePropertyChange(KeyboardFocusManager.java:1493)
+	at java.awt.KeyboardFocusManager.setGlobalPermanentFocusOwner(KeyboardFocusManager.java:780)
+	at java.awt.DefaultKeyboardFocusManager.dispatchEvent(DefaultKeyboardFocusManager.java:616)
+	at java.awt.Component.dispatchEventImpl(Component.java:4760)
+	at java.awt.Container.dispatchEventImpl(Container.java:2297)
+	at java.awt.Component.dispatchEvent(Component.java:4711)
+	at java.awt.EventQueue.dispatchEventImpl(EventQueue.java:760)
+	at java.awt.EventQueue.access$500(EventQueue.java:97)
+	at java.awt.EventQueue$3.run(EventQueue.java:709)
+	at java.awt.EventQueue$3.run(EventQueue.java:703)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:74)
+	at java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:84)
+	at java.awt.EventQueue$4.run(EventQueue.java:733)
+	at java.awt.EventQueue$4.run(EventQueue.java:731)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:74)
+	at java.awt.EventQueue.dispatchEvent(EventQueue.java:730)
+	at java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:205)
+	at java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:116)
+	at java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:105)
+	at java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:93)
+	at java.awt.EventDispatchThread.run(EventDispatchThread.java:82)
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2019a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function [vars_out] = Baltic_SDN_BEC_colocations_v2r0(iyear,imonth,iregion,idata_type)
+%
+%
+% Syntax (function):
+% [vars_out] = Baltic_SDN_BEC_colocations(iyear,imonth,iregion,idata_type)
+%
+% Description
+% Make SDN-2-Satellite colocations whithin a searching
+% distance and within
+% a time window (i.e. ±7-days).
+% [1] The output from this script is to feed into Baltic_argo_BEC_analyses.m
+% [2] This script save colocations [Baltic_argo_BEC_colocations_VARS2SAVE.m]
+%
+% Use Seadatanet files prepared by BEC for validation SSS (Baltic+)
+%
+% Input
+% iyear, imonth
+% iregion: There are four Baltic+ study regions (see Baltic+ DUM, p. 28):
+% [1] Arkona Basin           [ArB] (55°31'30.22"N,  16°16'15.06"E)
+% [2] Bothian Sea            [BOS] (61°55'50.19"N,  19°14'46.24"E)
+% [3] Gulf of Finland        [GOF] (59°35'55.07"N,  23°07'27.96"E)
+% [4] Northern Baltic Proper [NBP] (57°36'10.05"N,  19°48'25.78"E)
+% [5] ALL-Baltic             [ALL]
+%
+% * for more informaiton about Baltic regions type "help Baltic_studyregion.m"
+%
+%
+%
+% data_type:   [1] Nominal, [3] Nodal Sampling,
+%              [6] Global BEC (v001);
+%              [7] CCI+SSS (v01.07);
+%              [8] Model (NEMO) data in Baltic
+%
+%
+% Output
+% vars_out is structure and Matlab (.mat) and NetCDF (.nc) files
+% with colocated profiles.
+%
+%
+% current version: v2r0 (2020/03/18) -
+%         [1] converted script into function;
+%         [2] split up colocations and stats in
+%             two different scripts. This script does colocation (only)
+%             to input in stats.
+%
+% History
+% v1r2 (2020/01/20) - original script to do colocations and stats
+%
+% =========================================================================
+% Author: rcatany
+%
+% =========================================================================
+
+% clc;
+close all
+
+% switch off warning (there is something about interpolation)
+warning('off','all');
+
+%% Flags script
+run_test = 0;    % flag to run script (not to save figures);
+save_output = 1; % flag to save output [1], or not [0];
+
+if run_test == 1
+    clc
+    warning ('Baltic_seadatanet_BEC_colocation.m is in TEST MODE')
+    
+    disp(['RUNNING TEST MODE. Figures and files might NOT BE SAVED'])
+    prompt_msm = 'Do you want to save script output? [1] yes, or [0] not ... ';
+    save_output = input(prompt_msm);
+end
+
+% set the data_type
+if idata_type == 1
+    version_str = 'plusv3r0';
+elseif idata_type == 3
+    version_str = 'v2r0';
+elseif idata_type == 4
+    version_str = 'v1r0_NOM';
+elseif idata_type == 5
+    version_str = 'v1r0_NS';
+elseif idata_type == 6
+    version_str = 'v001';
+elseif idata_type == 7
+    version_str = 'CCI+SSSv1.7';
+elseif idata_type == 8
+    version_str = 'REANALYSIS_PHY_003_011';
+    
+end
+
+
+%% Get SSS-satellite data within a given distance from each Argo float
+r = 25; % Radius distance platform (in Km)
+r_str = num2str(r);
+
+% Areas at high-lats are about 25% bigger than at equator
+lat_factor = 1.25;
+
+% multiply lat_factor to get a more accurate sampling radius
+r2 = r*lat_factor;
+
+depth_ref = 10; % Reference depth (m), by gral. assumtion 10 m
+
+ibasin = 9; % Basin number: 9 (7 Arctic, 9 Baltic)
+[xmin,xmax,ymin,ymax, basin_str] = map_lim_raf(ibasin);
+
+fg_save = 1; % flag save figures [1]; or not [0];
+fg_format = 'png';
+
+path_root = ('/Volumes/Rogue/Data/');
+folder_data = ([path_root ...
+    'SSS/Baltic/BEC/Validation/indata/SDN/']);
+
+
+% ==========================
+%
+% iyear = 2011:2013;
+% imonth = 1:12;
+
+
+a = length(iyear);
+b = length(imonth);
+
+% filename Argo BEC structure: argo_20110101_20110110.nc
+ndays = 9; % number of days contained in each BEC Argo file
+
+
+
+
+% Output variables to save
+ref_vars_out = {...
+    'SALT_irange','TEMP_irange','PRES_irange',...
+    'lon_irange','lat_irange','time_irange'...
+    'region','basin_str'};
+
+sat_vars_out = {...
+    'sss_irange',...
+    'sss_error_irange',...
+    'lon_sss_irange','lat_sss_irange','version_str'};
+
+colocated_vars_out = {...
+    'sss_irange_mn',...
+    'sss_irange_md',...
+    'sss_error_irange_mn'};
+
+save_vars_out = [ref_vars_out sat_vars_out colocated_vars_out];
+
+%% Loop each year Colocate ref-2-Satellite
+% pre-locate vars
+
+% pre-lcoate Stats dSSS = SATELLITE minus ARGO
+nTOT    = 500;  % Total number of sat-to-argo colocations
+ndepth  = 1;   % number of depth levels
+
+grid_size = 1/4; % SMOS-grid size 1/4 (~0.25 km)
+
+n = 9; % add extra elements to the matrix
+
+% maximum number grid-points in irange + n extra elements
+nele = (((r2/100)*4)/grid_size)+1+n;
+
+ncount = 0; % set counter to zero
+
+% Colocatiion fn_out for each Regional study in the Baltic
+if strcmpi(iregion,'ARB') || iregion == 1% Arkona Basin
+    region = 'ARB';
+    
+elseif strcmpi(iregion,'BOS')|| iregion == 2 % Bothian Sea
+    region = 'BOS';
+    
+elseif strcmpi(iregion,'GOF')|| iregion == 3 % Gulf of Finland
+    region = 'GOF';
+    
+elseif strcmpi(iregion,'NBP')|| iregion == 4 % Gulf of Finland
+    region = 'NBP';
+    
+elseif strcmpi(iregion,'ALL') || iregion == 5 % all-Baltic region stats
+    region = 'ALL';
+    
+end
+
+%% Save Colocation output
+
+folder_out = [path_root...
+    'SSS/' basin_str...
+    '/BEC/Validation/indata/SDN/Colocations/monthly/' version_str '/' region '/'];
+foldercheck_raf(folder_out);
+
+
+% Make a log_file to record status of each ARGO-BEC file [2020/01/21]
+folder_log = '/Volumes/Rogue/Data/SSS/Baltic/BEC/Validation/indata/';
+fn_log = [folder_log 'SDN_MISSING_20200121.txt'];
+
+folder_figs = '/Volumes/Rogue/scratch/Validation/';
+
+
+folder_figs = [folder_figs basin_str '/SDN/' region '/'];
+
+if fg_save == 1
+    foldercheck_raf(folder_figs); %! make folder_figs
+end
+
+
+
+%% [1] Read SDN dataset
+
+% Future releases might chnage filenanme of SDB dataset
+fn_in = [folder_data...
+    'data_from_SDN_2015-09_TS_BalticSea_QC_done_v2_filtered.nc'];
+
+
+% function to read SDN dataset
+[TT] = rd_SDN (fn_in);
+
+lon = TT.lon;
+lat = TT.lat;
+
+time_number = TT.time_number;
+time_str1 = datestr(time_number(1),'yyyymmdd');
+time_str2 = datestr(time_number(end),'yyyymmdd');
+
+SALT = TT.SSS_SDN;
+TEMP = TT.SST_SDN;
+PRES = TT.depth_SDN;
+
+platform_type = TT.metavar3; % [B]: Bottle; or [C]: CTD
+platform_ID = TT.metavar5;
+vars_measured = TT.metavar12;
+
+z_grid = 0.5; % vertical interp at 0.5 m
+
+% function to make vertical intp (works with any prof., not only Argo)
+[t_intp,s_intp,p_intp] = zinterp1_ARGO(TEMP,SALT,PRES,z_grid);
+
+SALT = s_intp;
+TEMP = t_intp;
+PRES = p_intp;
+
+ind = PRES > 100;
+
+SALT(ind) = NaN;
+TEMP(ind) = NaN;
+PRES(ind) = NaN;
+
+clear *intp
+
+
+% ========================
+
+
+%% Do colocations through time
+
+
+for yy = 1:length(iyear)
+    iYEAR = iyear(yy);
+    
+    disp(['Processing SDN-2-Satellite colocation '...
+        basin_str ' ' num2str(iYEAR)]);
+    
+    for mm = 1:length(imonth)
+        iMONTH = imonth(mm);
+        
+        % =============================
+        % fn_out (.mat)
+        % %         fn_out = [folder_out 'SDN_'...
+        % %             sprintf('%02.0f',depth_ref) 'm_COLOCATIONS_'...
+        % %             sprintf('%02.0f',iYEAR)...
+        % %             '.mat'];
+        
+        fn_out = [folder_out basin_str '_' region '_SDN_R' r_str '_'...
+            sprintf('%02.0f',depth_ref) 'm_COLOCATIONS_'...
+            sprintf('%02.0f',iYEAR) sprintf('%02.0f',iMONTH) '_'...
+            version_str '.mat'];
+        
+        
+        % =================================
+        
+        %% Colocate REF-2-satellite (Loop through each month)
+        fn_out_exist = exist(fn_out,'file');
+        
+        if fn_out_exist ~= 2 || run_test == 1
+            
+            
+            
+            %% Pre-lcoate vars_out (ref-2-SAT colocation yearly files) -  snippet -
+            run Baltic_SDN_BEC_colocations_VARS2SAVE.m % -  snippet -
+            
+            % ==========================
+            
+            disp(['year: ' num2str(iYEAR)...
+                ' month: ' sprintf('%02.0f',iMONTH)])
+            
+            % folder name with BEC-ARGO data
+            folder_in = ([folder_data...
+                num2str(iYEAR) '/' sprintf('%02.0f',iMONTH) '/']);
+            
+            % number of days in month
+            idays = calendar(iYEAR,iMONTH);
+            idays (idays == 0) = [];
+            idays = sort(idays);
+            
+            for dd = 1: length(idays)
+                iDAY = idays(dd);
+                itime_start = datenum(iYEAR,iMONTH,iDAY);
+                itime_end = itime_start + ndays;
+                
+                iTIME = [itime_start itime_end]; % keep time in vector
+                
+                % >>>>>>>>>>>>>>>>>>>>
+                % load SDN-matlab file [fn]
+                %                 fn = (['argo_' ...
+                %                     datestr(itime_start,'yyyymmdd') '_'...
+                %                     datestr(itime_end,'yyyymmdd')]);
+                %
+                %                 fn_in = ([folder_in fn '.mat']);
+                % >>>>>>>>>>>>>>>>>>>>
+                
+                % ===============
+                %% [1] Load DATA
+                %% [1.1] Load and tidy up the reference dataset
+                if ismember(itime_start,time_number) == 1
+                    
+                    ind = time_number == itime_start;
+                    
+                    lon_alfa = lon(ind);
+                    lat_alfa = lat(ind);
+                    
+                    platform_type_alfa = platform_type(ind);
+                    platform_ID_alfa = platform_ID(ind);
+                    
+                    time_number_alfa = time_number(ind);
+                    
+                    SALT_alfa = SALT(:,ind);
+                    TEMP_alfa = TEMP(:,ind);
+                    PRES_alfa = PRES(:,ind);
+                    
+                    % station close to land are empty <??>
+                    ind2 = any(SALT_alfa);
+                    
+                    lon_alfa(~ind2) = [];
+                    lat_alfa(~ind2) = [];
+                    time_number_alfa(~ind2) = [];
+                    
+                    SALT_alfa(:,~ind2) = [];
+                    TEMP_alfa(:,~ind2) = [];
+                    PRES_alfa(:,~ind2) = [];
+                    
+                    clear ind*
+                    
+                    % Regional study in the Baltic
+                    if strcmpi(region,'ARB') % North Atlantic
+                        
+                        ind_reg = lon_alfa >=15 & lon_alfa <= 18  & lat_alfa > 53 & lat_alfa <= 58;
+                        
+                    elseif strcmpi(region,'BOS')
+                        
+                        ind_reg = lon_alfa >= 18 & lon_alfa <= 23 & lat_alfa > 60 & lat_alfa <= 64;
+                        
+                    elseif strcmpi(region,'GOF')
+                        
+                        ind_reg = lon_alfa >= 23 & lon_alfa <= 26 & lat_alfa > 58 & lat_alfa <= 62;
+                        
+                    elseif strcmpi(region,'NBP')
+                        
+                        ind_reg = lon_alfa >= 18 & lon_alfa <= 23 & lat_alfa > 56 & lat_alfa <= 59;
+                        
+                    elseif strcmpi(region,'ALL') % all-Arctic region stats
+                        ind_reg = ones(size(lon_alfa));
+                        
+                    end
+                    
+                    lon_alfa(~ind_reg) = [];
+                    lat_alfa(~ind_reg) = []; 
+                    time_number_alfa(~ind_reg) = [];
+                    SALT_alfa(:,~ind_reg) = [];
+                    TEMP_alfa(:,~ind_reg) = [];
+                    PRES_alfa(:,~ind_reg) = [];
+                    clear ind_reg
+                    
+                    
+                    if ~isempty(lon_alfa) && ~isempty(lat_alfa) && sum(any(SALT_alfa))~=0
+                        % Cases with more than one float (profile) in one file
+                        nprof1 = length(lon_alfa(:,1));
+                        nprof2 = length(lat_alfa(:,1));
+                        
+                        % Argo lon-lat must be same size
+                        if size(lon_alfa) == size(lat_alfa)
+                            nprof = nprof1;
+                        else
+                            error([...
+                                'Number of ref longitudes and latitudes'...
+                                ' must be equal'])
+                        end
+                        
+                        % Make PRES to be same size as SALT (and TEMP)
+                        [a1,b1] = size(SALT_alfa);
+                        [a2,b2] = size(PRES_alfa);
+                        
+                        if b1 ~= b2
+                            PRES_alfa = repmat(PRES_alfa,1,b1);
+                        end
+                        
+                        
+                        %% [1] load Satellite SSS:
+                        %% [1] Baltic+ Nominal, [2] Baltic Nodal Sampling, [3] Global BEC, [4] CCI+SSS
+                        %% [1.2.1] Baltic+ [BEC-SSS] Nominal v1.0 20110101 - 20131227
+                        
+                        
+                        if idata_type == 4 && itime_start >= datenum(2011,02,01) && itime_start <= datenum(2013,12,27)
+                            data_type = idata_type; % Baltic+ (SSS-BEC NM v1.0)
+                            
+                            [TT] = rd_smos_L4_BEC_v1r3(itime_start,ibasin,data_type);
+                            
+                            lon_sss1 = TT.lon;
+                            lat_sss1 = TT.lat;
+                            
+                            sss = TT.sss;
+                            sss_error = TT.sss_error;
+                            
+                            lon_sss = lon_sss1;
+                            lat_sss = lat_sss1;
+                            
+                        elseif idata_type == 4 && (itime_start < datenum(2011,02,01) || itime_start > datenum(2019,08,31))
+                            sss = nan;
+                            lon_sss = NaN;
+                            lat_sss = NaN;
+                        end
+                        
+                        
+                        %% [1.2.2] Baltic+ Nodal Sampling [version v1.0: 20110101 - 20180102]
+                        
+                        if idata_type == 5 && itime_start >= datenum(2011,02,01) && itime_start <= datenum(2013,12,27)
+                            data_type = idata_type; % Baltic+ (SSS-BEC NS v1.0)
+                            
+                            [TT] = rd_smos_L4_BEC_v1r3(itime_start,ibasin,data_type);
+                            
+                            lon_sss1 = TT.lon;
+                            lat_sss1 = TT.lat;
+                            
+                            sss = TT.sss;
+                            sss_error = TT.sss_error;
+                            
+                            lon_sss = lon_sss1;
+                            lat_sss = lat_sss1;
+                            
+                        elseif idata_type == 5 && (itime_start < datenum(2011,02,01) || itime_start > datenum(2019,08,31))
+                            sss = nan;
+                            lon_sss = NaN;
+                            lat_sss = NaN;
+                        end
+                        
+                        %% load Baltic+ grid -to convert all products to the same grid
+                        if idata_type == 6 || idata_type == 7 || idata_type == 8
+                            
+                            data_type = 5;
+                            % store Baltic+ grid (lon/lat)
+                            folder_grid = ([path_root ...
+                                'SSS/' basin_str '/BEC/Baltic_grid/']);
+                            
+                            fn_grid = [folder_grid 'Baltic_plusv1.0_grid.mat'];
+                            
+                            if exist(fn_grid,'file') ~= 2
+                                [TT] = rd_smos_L4_BEC_v1r3(itime_start,ibasin,data_type);
+                                
+                                lon_sss = TT.lon;
+                                lat_sss = TT.lat;
+                                
+                                % save Arctic grid
+                                folder_grid = (['/Volumes/Rogue/Data/SSS/Baltic/BEC/' basin_str '_grid/']);
+                                foldercheck_raf(folder_grid);
+                                
+                                save (fn_grid,'lon_sss','lat_sss');
+                                
+                            else
+                                load (fn_grid)
+                            end
+                        end
+                        
+                        
+                        %% [1.2.3] Baltic-Global product (v001)
+                        
+                        if idata_type == 6 && iYEAR < 2010
+                            data_type = 6;
+                            [TT] = rd_smos_L4_BEC_v1r3(itime_start,ibasin,data_type);
+                            
+                            sss_beta = TT.sss;
+                            
+                            lon_beta = TT.lon;
+                            lat_beta = TT.lat;
+                            
+                            % homogenize grid (global product to Baltic+)
+                            [sss_beta2] = griddata(lon_beta,lat_beta,sss_beta,lon_sss,lat_sss);
+                            
+                            ind = lon_sss >= xmin & lon_sss <= xmax |...
+                                lat_sss >= ymin & lat_sss <= ymax ;
+                            
+                            sss_beta2 (ind == 0) = NaN;
+                            
+                            sss = sss_beta2;
+                            sss_error = nan(size(sss));
+                            
+                            clear *_beta* ind TT; % clear work space
+                            
+                        elseif idata_type == 6 && iYEAR >=2010
+                            sss = nan;
+                            lon_sss = NaN;
+                            lat_sss = NaN;
+                            
+                            
+                        end
+                        
+                        %% [1.2.4] CCI+SSS data (v01.07)
+                        % CCI+SSS data: 20100106 - 20181101
+                        if idata_type == 7 && (itime_start >= datenum(2011,01,01) && itime_start <= datenum(2018,11,01))
+                            
+                            plot_cci_ex = 0;
+                            cci_product = 1; % [1] '7-days', or [2] '30-days' product
+                            [TT] = rd_sss_cci(itime_start,ibasin,cci_product,plot_cci_ex);
+                            
+                            sss_beta = TT.sss;
+                            
+                            sss_error_beta = TT.sss_bias_std;
+                            
+                            % get lat/lon from Baltic+
+                            lon_sss1 = lon_sss;
+                            lat_sss1 = lat_sss;
+                            
+                            lon_beta = TT.lon;
+                            lat_beta = TT.lat;
+                            
+                            % Grid Baltic product to the same grid (all in
+                            % Baltic+ grid)
+                            sss = griddata(lon_beta,lat_beta,sss_beta,lon_sss1,lat_sss1);
+                            sss_error = griddata(lon_beta,lat_beta,sss_error_beta,lon_sss1,lat_sss1);
+                            
+                            lon_sss = lon_sss1;
+                            lat_sss = lat_sss1;
+                            
+                            clear lon_sss1 lat_sss1 *_beta*
+                            
+                        elseif idata_type == 7 && (itime_start < datenum(2011,01,01) || itime_start > datenum(2018,11,01))
+                            sss = nan;
+                            lon_sss = NaN;
+                            lat_sss = NaN;
+                            
+                        end
+                        
+                        
+                        
+                        %% [1.2.5] Load Model in Baltic
+                        
+                        if idata_type == 8 && itime_start >= datenum(2011,01,01) && itime_start <= datenum(2013,12,16)
+                            
+                            grid2baltic = 0; % grid model output to Baltic grid
+                            [YY,MM,DD] = datevec(itime_start);
+                            
+                            disp(['model at: ' datestr(itime_start)])
+                            
+                            data_type = idata_type; % Baltic+ MODEL
+                            
+                            [TT] = nemo_rd_BEC_Baltic_FUN (YY,MM,DD,ibasin,grid2baltic);
+                            
+                            sss_beta = TT.SSS_model;
+                            
+                            % get lat/lon from Baltic+
+                            lon_sss1 = lon_sss;
+                            lat_sss1 = lat_sss;
+                            
+                            lon_beta = TT.lon;
+                            lat_beta = TT.lat;
+                            
+                            % Grid Baltic product to the same grid (all in
+                            % Baltic+ grid)
+                            sss = griddata(lon_beta,lat_beta,sss_beta,lon_sss1,lat_sss1);
+                            
+                            sss_error = nan(size(sss));
+                            
+                            lon_sss = lon_sss1;
+                            lat_sss = lat_sss1;
+                            
+                            clear lon_sss1 lat_sss1 *_beta*
+                            
+                        elseif idata_type == 8 && (itime_start < datenum(2011,01,01) || itime_start > datenum(2013,12,27))
+                            sss = nan;
+                            lon_sss = NaN;
+                            lat_sss = NaN;
+                        end
+                        % =================
+                        
+                        %% [1.3] Grid SDN data to the smos-grid
+                        [lon_grid,lat_grid] = ...
+                            griddata_raf(lon_alfa,lat_alfa,lon_sss,lat_sss);
+                        
+                        % plot example of gridded and non-gridded data
+                        plot_example = 0;
+                        
+                        if plot_example == 1
+                            nn =1;
+                            run Baltic_seadatanet_BEC_colocations_PLOT.m
+                        end
+                        
+                        
+                        %% [2] Select Satellite-SSS data at Float location (within r distance in km)
+                        for nn = 1: nprof
+                            
+                            % keep Argo lon/lat gridded to smos-grid
+                            if nn == 1
+                                lon_alfa = lon_grid;
+                                lat_alfa = lat_grid;
+                                clear lon_grid lat_grid lon_model lat_model
+                            end
+                            
+                            DIST = Distance(lon_alfa(nn),lat_alfa(nn),lon_sss,lat_sss);
+                            irange = find(DIST <= r2);
+                            
+                            Ln = length(irange);
+                            
+                            if Ln >= 1
+                                ncount = ncount+1;
+                                
+                                % to reset "repetition profile check"
+                                rep_prof = -1;
+                                
+                                %% Satellite data at float location
+                                sss_irange (1:Ln,ncount) = sss(irange);
+                                
+                                sss_error_irange (1:Ln,ncount) = sss_error(irange);
+                                
+                                sss_irange_mn (ncount) = nanmean(sss(irange));
+                                
+                                sss_irange_md (ncount) = nanmedian(sss(irange));
+                                
+                                sss_error_irange_mn (ncount) = nanmean(sss_error(irange));
+                                
+                                sss_error_irange_md (ncount) = nanmedian(sss_error(irange));
+                                
+                                lon_sss_irange (1:Ln,ncount) = lon_sss(irange);
+                                lat_sss_irange (1:Ln,ncount) = lat_sss(irange);
+                                
+                                
+                                
+                                %% [2.3] Argo Vertical profile interpolation
+                                [a,b] = size(SALT_alfa);
+                                
+                                xROW = 1:a;
+                                
+                                % nprof_irange (1,ncount) = nprof;
+                                
+                                lon_irange (1,ncount) = lon_alfa(nn);
+                                lat_irange (1,ncount) = lat_alfa(nn);
+                                
+                                time_irange (ncount) = time_number_alfa(nn);
+                                
+                                platform_type_irange(1,ncount) = char(platform_type_alfa(nn));
+                                platform_ID_irange(1,ncount) = char(platform_ID_alfa(nn));
+                                
+                                PRES_irange (xROW,ncount) = PRES_alfa(:,nn);
+                                SALT_irange (xROW,ncount) = SALT_alfa(:,nn);
+                                TEMP_irange (xROW,ncount) = TEMP_alfa(:,nn);
+                                
+                                clear a b
+                                
+                                %% [2.3.1] Interpolate Z-direction (narrow depth levels)
+                                %                                 % Interpolation specs: Grid dimensions
+                                %                                 pres1 = 0;              % min pres bin
+                                %                                 pres2 = max(PRES_alfa); % max depth (m)
+                                %                                 z_grid = 0.5;           % interpolant distance (m) between depth levels
+                                %
+                                %                                 TEMP1 = TEMP_alfa(:,nn);
+                                %                                 SALT1 = SALT_alfa(:,nn) ;
+                                %                                 PRES1 = PRES_alfa(:,nn) ;
+                                %
+                                %                                 % interpolation function
+                                %                                 [TEMP_beta_intp,SALT_beta_intp,PRES_beta_intp] =...
+                                %                                     zinterp1_ARGO(TEMP1,SALT1,PRES1,z_grid);
+                                %
+                                %                                 [a,b] = size(TEMP_beta_intp);
+                                %
+                                %                                 TEMP_intp(1:a,ncount) = TEMP_beta_intp;
+                                %                                 SALT_intp(1:a,ncount) = SALT_beta_intp;
+                                %                                 PRES_intp(1:a,ncount) = PRES_beta_intp;
+                                %
+                                %                                 clear a b *_beta
+                                
+                                %% [3] dSSS = SDN - SATELLITE
+                                % % Done by snippet "Baltic_SDN_colocations_stats.m"
+                                
+                                
+                                
+                            end
+                        end; clear *_alfa *_beta*
+                        
+                        %                     elseif isempty(lon) || isempty(lat)
+                        %                         msg_log = ([fn_in ' EMPTY_FILE']);
+                        %                         make_LOGFILE(fn_log,msg_log);
+                    end
+                    
+                elseif exist(fn_in,'file') == 0
+                    % write a log_file, recording the Argo (.mat) files
+                    msg_log = ([fn_in ' MISSING_FILE']);
+                    make_LOGFILE(fn_log,msg_log);
+                end
+            end
+            
+            %         end; clear mm dd TEMP SALT TEMP1 SALT1 lon lat
+            
+            
+            %% Remove empty floats (*optimize space)
+            
+            
+            [a,b] = size(lon_irange);
+            
+            % index empty floats (ie. Empty salt and temp)
+            ind1 = (all(isnan(SALT_irange),1));
+            ind2 = (all(isnan(TEMP_irange),1));
+            
+            ind = ind1 & ind2;
+            
+            if ~isempty (ind)
+                
+                % [BUG] Issue relating to the removing nan (columns/rows) REPLACE_WITH_DASH_DASH
+                % fixed (badly) with a dirty for-loop and if-statements
+                
+                for nn = 1:length(save_vars_out)
+                    
+                    eval(['var_beta = ' save_vars_out{nn} ';']);
+                    
+                    % To remove platform profiles (NOT depth levels)
+                    [a2,b2] = size(var_beta);
+                    
+                    if b2 == b
+                        eval([save_vars_out{nn} '(:,ind) = [];']);
+                        
+                    elseif a2 == b
+                        eval([save_vars_out{nn} '(ind,:) = [];']);
+                    end
+                    
+                end
+                
+            end
+            clear *beta*
+            
+            
+            %% save fn_out (with Argo-2-satellite colocations)
+            disp({'New file with SDN-2-satellite colocations '; fn_out})
+            
+            save(fn_out,save_vars_out{:})
+            
+        elseif fn_out_exist == 2
+            load(fn_out);
+            
+        else
+            clc
+            warning (['Missing Colocations file: ' fn_out])
+            
+            % write a log_file, recording the Argo (.mat) files
+            msg_log = ([fn_in ' MISSING_FILE']);
+            make_LOGFILE(fn_log,msg_log);
+        end
+    end
+end
+
+
+
+
+% Setup function output
+TT = struct;
+
+for nn = 1:length(save_vars_out)
+    this_param = save_vars_out{nn};
+    
+    eval(['TT.' this_param '= ' this_param ';']);
+    
+end
+
+
+vars_out = TT;
+clear TT
+
+
+
+% END-OF-SCRIPT
+
+
+
+
+
+
+##### SOURCE END #####
+--></body></html>
