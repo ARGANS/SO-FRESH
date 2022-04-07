@@ -24,6 +24,9 @@ class lpdaac_download():
         self.vmax=vmax
 
     def dates_builder(self):
+
+        """ Identify all dates between start and end entries. """
+
         dates=[]
 
         syear=int(self.sdate[0:4])
@@ -45,6 +48,8 @@ class lpdaac_download():
         return(dates)
 
     def product_selector(self):
+
+        """ Identifies product requested for download and specifies the URL. """
         if self.product == "MYD09GA":
             response = requests.get("https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.061/").text
             url = "https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.061/"
@@ -55,6 +60,9 @@ class lpdaac_download():
         return(url)
 
     def url_extractor(self):
+
+        """ Pulls the URL of all products which have fit the criteria and creates their out directory """
+
         url=self.product_selector()
         prods_links, outdirs=[],[]
         for date in tqdm(self.dates_builder()):
@@ -86,8 +94,10 @@ class lpdaac_download():
         return(prods_links, outdirs)
 
 
-
     def workspace_setup(self, url):
+
+        """ Preparation for data download. """
+        
         if isinstance(url, str):
             file_lst = [url]
         if self.data_folder[-1] != "/" and self.data_folder[-1] != "\\":
@@ -95,6 +105,9 @@ class lpdaac_download():
 
     @staticmethod
     def earthdata_authentication():
+
+        """ Login for Earth data. """
+
         urs="urs.earthdata.nasa.gov"
         prompts = ['Enter NASA Earthdata Login Username \n(or create an account at urs.earthdata.nasa.gov): ','Enter NASA Earthdata Login Password: ']
         try: # Determines if netrc file exists with Earth Data credentials.
@@ -125,25 +138,30 @@ class lpdaac_download():
 
 
     def download(self, links, dirs):
+
+        """ Execute data download from Earth data. """
+
         netrcdir, urs = self.earthdata_authentication()
-        for l, d in zip(links, dirs):
+        for l, d in tqdm(zip(links, dirs), total=len(links)):
             self.workspace_setup(l)
             outfile=d+"01_"+str(l.split("/")[-1].strip())
-            with requests.get(l.strip(), verify=False, stream=True, auth=(netrc(netrcdir).authenticators(urs)[0], netrc(netrcdir).authenticators(urs)[2])) as response:
-                if response.status_code != 200:
-                    print("{} not downloaded. Verify that your username and password are correct in {}".format(l.split('/')[-1].strip(), netrcdir))
-                else:
-                    response.raw.decode_content = True
-                    content = response.raw
-                    with open(outfile, 'wb') as d:
-                        while True:
-                            chunk = content.read(16 * 1024)
-                            if not chunk:
-                                break
-                            d.write(chunk)
-                    print(f"Downloaded file: {l}")
-            extract=tk.modis_preprocess(outfile).extract_MYDTBGA()
-            normalise=tk.modis_preprocess((extract+"_4.tif")).normalise()
-            os.remove(outfile)
-            shutil.rmtree(os.path.split(extract)[0], ignore_errors=True)
-            sys.exit()
+            if os.path.exists(outfile) or os.path.exists((os.path.split(outfile))[0]+"/02_"+(os.path.split(outfile)[1])[3:-3]+"tif"):
+                continue
+            else:
+                with requests.get(l.strip(), verify=False, stream=True, auth=(netrc(netrcdir).authenticators(urs)[0], netrc(netrcdir).authenticators(urs)[2])) as response:
+                    if response.status_code != 200:
+                        print("{} not downloaded. Verify that your username and password are correct in {}".format(l.split('/')[-1].strip(), netrcdir))
+                    else:
+                        response.raw.decode_content = True
+                        content = response.raw
+                        with open(outfile, 'wb') as d:
+                            while True:
+                                chunk = content.read(16 * 1024)
+                                if not chunk:
+                                    break
+                                d.write(chunk)
+                        print(f"Downloaded file: {l}")
+                extract=tk.modis_preprocess(outfile).extract_MYDTBGA()
+                normalise=tk.modis_preprocess((extract+"_4.tif")).normalise()
+                os.remove(outfile)
+                shutil.rmtree(os.path.split(extract)[0], ignore_errors=True)
