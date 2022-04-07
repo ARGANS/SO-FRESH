@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # @James Hickson | Argans UK | jhickson@argans.co.uk
-
+"""
+Toolkit containing functions for pre-processing MODIS and AMSR2 products.
+"""
+# packages
 import os, sys
 import gdal, glob, itertools, osr, functools
 import numpy as np
@@ -212,6 +215,7 @@ class amsr2_preprocess():
 def fusion(data_folder, sdate, edate, products):
 
     """ Fuse together data of given products """
+    
     sdate=datetime.strptime(os.path.join(sdate), "%Y/%m/%d").date()
     edate=datetime.strptime(os.path.join(edate), "%Y/%m/%d").date()
     date_dt=[sdate+timedelta(days=x) for x in range((edate-sdate).days+1)]
