@@ -13,20 +13,87 @@ import skimage
 from skimage import morphology
 from datetime import datetime, timedelta
 
-def modis_rename(path):
+class aux_func():
+    @staticmethod
+    def rename(path):
 
-    """ Rename MODIS imagery by adding "01" at the begining for easy distinguishability. """
+        """ Rename MODIS imagery by adding "01" at the begining for easy distinguishability. """
 
-    for root, dirs, files in os.walk(path):
-        for i in files:
-            if i.startswith("BROWSE") and i.endswith(".jpg"):
-                os.rename(os.path.join(root, i), os.path.join(root, "01_"+i))
-            elif i.startswith("MYDTBGA") and i.endswith(".hdf"):
-                os.rename(os.path.join(root, i), os.path.join(root, "01_"+i))
-            elif i.startswith("ESACCI") and i.endswith(".nc"):
-                os.rename(os.path.join(root, i), os.path.join(root, "01_"+i))
+        for root, dirs, files in os.walk(path):
+            for i in files:
+                if i.startswith("BROWSE") and i.endswith(".jpg"):
+                    os.rename(os.path.join(root, i), os.path.join(root, "01_"+i))
+                elif i.startswith("MYDTBGA") and i.endswith(".hdf"):
+                    os.rename(os.path.join(root, i), os.path.join(root, "01_"+i))
+                elif i.startswith("ESACCI") and i.endswith(".nc"):
+                    os.rename(os.path.join(root, i), os.path.join(root, "01_"+i))
 
-class modis_preprocess():
+    @staticmethod
+    def array_to_tiff(array, image, outfile):
+
+        """ Write a 2D array to a 1 band image """
+
+        img=gdal.Open(image)
+        cols, rows, proj, geom = img.RasterXSize, img.RasterYSize, img.GetProjection(), img.GetGeoTransform()
+        outdataset=gdal.GetDriverByName("GTiff").Create(outfile, cols, rows, 1, gdal.GDT_Float32)
+        outdataset.SetProjection(proj)
+        outdataset.SetGeoTransform(geom)
+        outband=outdataset.GetRasterBand(1)
+        outband.WriteArray(array)
+
+class MYD09GA_preprocess():
+    def __init__(self, img, csv=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "aux_files/modis_sinusoidal_tiles.csv")), epsg=4326):
+        self.img = img
+        self.tile_extent_csv = csv
+        self.epsg = epsg
+
+    def extract_geometry(self):
+
+        """ Pull extents of tile referenced in the file naming. """
+
+        if self.img.endswith(".jpg"):
+            if os.path.basename(self.img).rsplit(".")[3][0] == "h" and os.path.basename(self.img).rsplit(".")[3][3] == "v":
+                h, v = os.path.basename(self.img).rsplit(".")[3][1:3], os.path.basename(self.img).rsplit(".")[3][4:6]
+            else:
+                raise RuntimeError("Unable to find appropriate matching tiles.")
+        elif self.img.endswith(".tif"):
+            if os.path.basename(self.img).rsplit(".")[2][0] == "h" and os.path.basename(self.img).rsplit(".")[2][3] == "v":
+                h, v = os.path.basename(self.img).rsplit(".")[2][1:3], os.path.basename(self.img).rsplit(".")[2][4:6]
+        df = pd.read_csv(self.tile_extent_csv)
+        df_row = df[(df["iv"] == int(v)) & (df["ih"] == int(h))]
+        img_array = gdal.Open(self.img).ReadAsArray()
+        if len(img_array.shape) == 3:
+            ny, nx = img_array.shape[1], img_array.shape[2]
+        elif len(img_array.shape) == 2:
+            ny, nx = img_array.shape[0], img_array.shape[1]
+        xmin, ymin, xmax, ymax = float(df_row["lon_min"]), float(df_row["lat_min"]), float(df_row["lon_max"]), float(df_row["lat_max"])
+        xres, yres = (xmax-xmin)/nx, (ymax-ymin)/ny
+
+        return(xmin, xres, 0, ymax, 0, -yres)
+
+    def assign_geometry(self):
+
+        """ Assign projection to image based on tile name. """
+
+        img_array = gdal.Open(self.img).ReadAsArray()
+        if len(img_array.shape) == 3:
+            shp, ny, nx = gdal.Open(self.img).RasterCount, img_array.shape[1], img_array.shape[2]
+        elif len(img_array.shape) == 2:
+            shp, ny, nx = gdal.Open(self.img).RasterCount, img_array.shape[0], img_array.shape[1]
+        outfile = os.path.dirname(self.img)+("/02_"+os.path.basename(self.img)[3:-4]+".tif")
+        outdataset = gdal.GetDriverByName("GTiff").Create(outfile, ny, nx, shp, gdal.GDT_Float32)
+        outdataset.SetGeoTransform(modis_preprocess(self.img).extract_geometry())
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(self.epsg)
+        outdataset.SetProjection(srs.ExportToWkt())
+        count=0
+        for arr in img_array:
+            count+=1
+            outband=outdataset.GetRasterBand(count)
+            outband.WriteArray(arr)
+            outband=None
+
+class MYDTBGA_preprocess():
     def __init__(self, img, csv=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "aux_files/modis_sinusoidal_tiles.csv")), epsg=4326):
         self.img = img
         self.tile_extent_csv = csv
@@ -106,8 +173,7 @@ class modis_preprocess():
         outband.WriteArray(arr_img*0.01)
 
 
-
-class modis_mosaic():
+class MODIS():
     def __init__(self, data_fp, product):
         self.data_fp=data_fp
         self.product=product
@@ -209,38 +275,4 @@ class amsr2_preprocess():
         arr[np.where(arr>100)]=0
         mask_arr=morphology.remove_small_objects(scipy.ndimage.binary_fill_holes(arr), min_size=500)
         arr[np.where(mask_arr<=False)]=-9999
-        array_to_tiff(arr, self.img, os.path.dirname(self.img)+"/02_"+os.path.basename(os.path.splitext(self.img)[0])[4:]+".tif")
-
-
-def fusion(data_folder, sdate, edate, products):
-
-    """ Fuse together data of given products """
-    
-    sdate=datetime.strptime(os.path.join(sdate), "%Y/%m/%d").date()
-    edate=datetime.strptime(os.path.join(edate), "%Y/%m/%d").date()
-    date_dt=[sdate+timedelta(days=x) for x in range((edate-sdate).days+1)]
-    dates = ["/".join((str(d.year), str("%02d" %d.month), str("%02d" %d.day))) for d in date_dt]
-    for d in dates:
-        imgs_4_fusion=[]
-        for p in products:
-            if p == "MYD09GA" or p == "MYDTBGA":fp=glob.glob((data_folder+"MODIS/"+p+"_006"+"/02_mosaic/"+d+"/02_*.tif"))
-            elif p == "SIC": fp =glob.glob((data_folder+"AMSR2/sic_extracted/"+d+"/02_*tif"))
-            imgs_4_fusion.append(fp)
-        imgs=functools.reduce(lambda x,y:x+y,(imgs_4_fusion))
-        if len(imgs) == len(products):
-            if not os.path.isdir(data_folder+"fusion/"+"_".join(products)+"/"+d): os.makedirs(data_folder+"fusion/"+"_".join(products)+"/"+d)
-            outfile=data_folder+"fusion/"+"_".join(products)+"/"+d+"/02_"+"_".join(products)+"_"+"".join(d.split("/"))+"_ANTARCTICA.tif"
-            os.system("gdal_merge.py -o -q -of GTIFF -seperate -ot Float32 -o %s %s"%(outfile, " ".join(imgs)))
-
-def array_to_tiff(array, image, outfile):
-
-    """ Write a 2D array to a 1 band image """
-
-    img=gdal.Open(image)
-    cols, rows, proj, geom = img.RasterXSize, img.RasterYSize, img.GetProjection(), img.GetGeoTransform()
-    outdataset=gdal.GetDriverByName("GTiff").Create(outfile, cols, rows, 1, gdal.GDT_Float32)
-    outdataset.SetProjection(proj)
-    outdataset.SetGeoTransform(geom)
-    outband=outdataset.GetRasterBand(1)
-    outband.WriteArray(array)
-
+        aux_func().array_to_tiff(arr, self.img, os.path.dirname(self.img)+"/02_"+os.path.basename(os.path.splitext(self.img)[0])[4:]+".tif")

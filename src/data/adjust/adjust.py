@@ -58,12 +58,12 @@ if __name__ == "__main__":
                 # Check if file requires to be renamed.
                 if filename.startswith(("BROWSE", "MYDTBGA", "ESACCI")) and filename.endswith((".jpg", ".hdf", ".nc")):
                     walk_fp = os.path.split(img)[0]
-                    tk.modis_rename(walk_fp)
+                    tk.aux_func(walk_fp).rename()
                 # Check if thermal data requires to be extracted from hdf.
                 elif filename.startswith("01_") and filename.endswith(".hdf"):
-                    extract = tk.modis_preprocess(img).extract_MYDTBGA()
+                    extract = tk.MYDTBGA_preprocess(img).extract_MYDTBGA()
                     thermal_bnd = (extract+"_4.tif")
-                    tk.modis_preprocess(thermal_bnd).normalise()
+                    tk.MYDTBGA_preprocess(thermal_bnd).normalise()
                 # Check if optical data requires to be projected.
                 elif filename.startswith("01_") and filename.endswith(".jpg"):
                     tk.modis_preprocess(img).assign_geometry()
@@ -78,7 +78,7 @@ if __name__ == "__main__":
             data_folder, sdate, edate, product=args.data_folder, args.start_date, args.end_date, args.product
             images, dates= tk.modis_mosaic(data_folder, product).build_filepath(sdate, edate)
             for i, d in zip(images, dates):
-                mosaic_img = tk.modis_mosaic(data_folder, product).build_mosaic(i, d, args.resample)
+                mosaic_img = tk.MODIS(data_folder, product).build_mosaic(i, d, args.resample)
                 if args.resample == True:
                     tk.modis_mosaic(data_folder, product).resample(mosaic_img)
         #==================================================================
