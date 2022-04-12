@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # @James Hickson | Argans UK | jhickson@argans.co.uk
 """
-Toolkit containing functions for pre-processing MODIS and AMSR2 products.
+Toolkit containing the Automated Polynya Identification Tool pre-processing steps. 
 """
-# packages
+# modules
 import os, sys
 import gdal, glob, itertools, osr, functools
 import numpy as np
@@ -42,7 +42,7 @@ class aux_func():
         outband.WriteArray(array)
 
 class MYD09GA_preprocess():
-    def __init__(self, img, csv=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "aux_files/modis_sinusoidal_tiles.csv")), epsg=4326):
+    def __init__(self, img, csv=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../", "aux_files/modis_sinusoidal_tiles.csv")), epsg=4326):
         self.img = img
         self.tile_extent_csv = csv
         self.epsg = epsg
@@ -82,7 +82,7 @@ class MYD09GA_preprocess():
             shp, ny, nx = gdal.Open(self.img).RasterCount, img_array.shape[0], img_array.shape[1]
         outfile = os.path.dirname(self.img)+("/02_"+os.path.basename(self.img)[3:-4]+".tif")
         outdataset = gdal.GetDriverByName("GTiff").Create(outfile, ny, nx, shp, gdal.GDT_Float32)
-        outdataset.SetGeoTransform(modis_preprocess(self.img).extract_geometry())
+        outdataset.SetGeoTransform(MYD09GA_preprocess(self.img).extract_geometry())
         srs = osr.SpatialReference()
         srs.ImportFromEPSG(self.epsg)
         outdataset.SetProjection(srs.ExportToWkt())
@@ -94,7 +94,7 @@ class MYD09GA_preprocess():
             outband=None
 
 class MYDTBGA_preprocess():
-    def __init__(self, img, csv=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "aux_files/modis_sinusoidal_tiles.csv")), epsg=4326):
+    def __init__(self, img, csv=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../", "aux_files/modis_sinusoidal_tiles.csv")), epsg=4326):
         self.img = img
         self.tile_extent_csv = csv
         self.epsg = epsg
@@ -134,7 +134,7 @@ class MYDTBGA_preprocess():
             shp, ny, nx = gdal.Open(self.img).RasterCount, img_array.shape[0], img_array.shape[1]
         outfile = os.path.dirname(self.img)+("/02_"+os.path.basename(self.img)[3:-4]+".tif")
         outdataset = gdal.GetDriverByName("GTiff").Create(outfile, ny, nx, shp, gdal.GDT_Float32)
-        outdataset.SetGeoTransform(modis_preprocess(self.img).extract_geometry())
+        outdataset.SetGeoTransform(MYDTBGA_preprocess(self.img).extract_geometry())
         srs = osr.SpatialReference()
         srs.ImportFromEPSG(self.epsg)
         outdataset.SetProjection(srs.ExportToWkt())
@@ -164,7 +164,7 @@ class MYDTBGA_preprocess():
         arr_img = o_img.ReadAsArray()
         shp, nx, ny = o_img.RasterCount, arr_img.shape[0], arr_img.shape[1]
         outdataset = gdal.GetDriverByName("GTiff").Create(outfile, ny, nx, shp, gdal.GDT_Float32)
-        outdataset.SetGeoTransform(modis_preprocess(self.img).extract_geometry())
+        outdataset.SetGeoTransform(MYDTBGA_preprocess(self.img).extract_geometry())
         srs = osr.SpatialReference()
         srs.ImportFromEPSG(self.epsg)
         outdataset.SetProjection(srs.ExportToWkt())
@@ -189,7 +189,11 @@ class MODIS():
             ####### VERSION TO BE REMOVED ONCE 061 EXISTS!!! ###########
             ### Create function where used can specify "antarctica" and it will select tiles for that region
             ### And they can specify specific tiles to merge
-            tiles = sorted(glob.glob((self.data_fp+"MODIS/"+self.product+"_006/"+"01_tiles"+"/*")))
+            if self.product == "MYDTBGA":
+                version = "061"
+            elif self.product == "MYD09GA":
+                version = input("What MYD09GA version would you like, 006 or 061?:\n")
+            tiles = sorted(glob.glob((self.data_fp+"MODIS/"+self.product+"_"+version+"/"+"01_tiles"+"/*")))
             dates = ["/".join((str(d.year), str("%02d" %d.month), str("%02d" %d.day))) for d in dates]
         else: raiseRuntimeError("A MODIS product was not picked up, please check product entry")
         mosaic=[]
@@ -205,7 +209,7 @@ class MODIS():
     def build_mosaic(self, imgs, date, r):
         if self.product == "MYD09GA" or "MYDTBGA":
             #### VERSION TO BE REMOVED ONCE 061 exists for MYDTBGA #####
-            outdir=(self.data_fp+"MODIS/"+self.product+"_006/02_mosaic/")+date
+            outdir=(self.data_fp+"MODIS/"+self.product+"_061/02_mosaic/")+date
             if not os.path.isdir(outdir): os.makedirs(outdir)
             if r == True:outfile=outdir+("/02a_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.tif")
             else:outfile=outdir+("/02_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.tif")

@@ -66,7 +66,7 @@ if __name__ == "__main__":
                     tk.MYDTBGA_preprocess(thermal_bnd).normalise()
                 # Check if optical data requires to be projected.
                 elif filename.startswith("01_") and filename.endswith(".jpg"):
-                    tk.modis_preprocess(img).assign_geometry()
+                    tk.MYD09GA_preprocess(img).assign_geometry()
                 # Check if SIC requires to be extracted from netCDF.
                 elif filename.startswith("01_") and filename.endswith(".nc"):
                     sic_img = tk.amsr2_preprocess(img).extract_from_netcdf()
@@ -76,11 +76,11 @@ if __name__ == "__main__":
                         tk.amsr2_preprocess(resampled_sic_img).mask()
         elif bool(args.data_folder)==True and bool(args.start_date)==True and bool(args.end_date)==True and bool(args.product)==True:
             data_folder, sdate, edate, product=args.data_folder, args.start_date, args.end_date, args.product
-            images, dates= tk.modis_mosaic(data_folder, product).build_filepath(sdate, edate)
+            images, dates= tk.MODIS(data_folder, product).build_filepath(sdate, edate)
             for i, d in zip(images, dates):
                 mosaic_img = tk.MODIS(data_folder, product).build_mosaic(i, d, args.resample)
                 if args.resample == True:
-                    tk.modis_mosaic(data_folder, product).resample(mosaic_img)
+                    tk.MODIS(data_folder, product).resample(mosaic_img)
         #==================================================================
         # Run and errors:
     except RuntimeError as msg:

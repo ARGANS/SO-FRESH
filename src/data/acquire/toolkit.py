@@ -1,6 +1,9 @@
 #!/usr/bin/env/python3
 # @James Hickson | Argans UK | jhickson@argans.co.uk
-
+"""
+Toolkit containing data acquisition for the Automated Polynya Identification Tool.
+"""
+# modules
 import os, sys
 from bs4 import BeautifulSoup
 from datetime import date, timedelta
@@ -10,7 +13,9 @@ import requests
 import shutil
 import time
 from tqdm import tqdm
-import toolkit as tk
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+"/adjust")
+import toolkit_ as tk
+
 
 class lpdaac_download():
     def __init__(self, data_folder, sdate, edate, product, hmin, hmax, vmin, vmax):
@@ -161,7 +166,7 @@ class lpdaac_download():
                                     break
                                 d.write(chunk)
                         print(f"Downloaded file: {l}")
-                extract=tk.modis_preprocess(outfile).extract_MYDTBGA()
-                normalise=tk.modis_preprocess((extract+"_4.tif")).normalise()
+                extract=tk.MYDTBGA_preprocess(outfile).extract_MYDTBGA()
+                normalise=tk.MYDTBGA_preprocess((extract+"_4.tif")).normalise()
                 os.remove(outfile)
                 shutil.rmtree(os.path.split(extract)[0], ignore_errors=True)
