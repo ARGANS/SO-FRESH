@@ -6,12 +6,15 @@ Toolkit containing the Automated Polynya Identification Tool pre-processing step
 # modules
 import os, sys
 import gdal, glob, itertools, osr, functools
+from collections import Counter
+from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
+from pathlib import Path
 import scipy
+import shutil
 import skimage
 from skimage import morphology
-from datetime import datetime, timedelta
 
 class aux_func():
     @staticmethod
@@ -103,9 +106,10 @@ class MYDTBGA_preprocess():
 
         """ Pull extents of tile referenced in the file naming. """
 
-        if self.img.endswith(".jpg"):
+        if self.img.endswith(".hdf"):
             if os.path.basename(self.img).rsplit(".")[3][0] == "h" and os.path.basename(self.img).rsplit(".")[3][3] == "v":
                 h, v = os.path.basename(self.img).rsplit(".")[3][1:3], os.path.basename(self.img).rsplit(".")[3][4:6]
+                print("h",h,"v",v)
             else:
                 raise RuntimeError("Unable to find appropriate matching tiles.")
         elif self.img.endswith(".tif"):
@@ -151,8 +155,9 @@ class MYDTBGA_preprocess():
 
         process_dir = os.path.split(os.path.abspath(self.img))[0]+("/01a_"+os.path.basename(os.path.splitext(self.img)[0])[3:])
         if not os.path.isdir(process_dir): os.mkdir(process_dir)
-        os.system("gdal_translate -q -f GTIFF -sds %s %s"%(self.img, (process_dir+"/01b_"+os.path.basename(os.path.splitext(self.img)[0])[3:]+".tif")))
-
+        else: shutil.rmtree(process_dir)
+        os.system("gdal_translate -q -of GTIFF -sds %s %s"%(self.img, (process_dir+"/01b_"+os.path.basename(os.path.splitext(self.img)[0])[3:]+".tif")))
+ 
         return(process_dir+"/01b_"+os.path.basename(os.path.splitext(self.img)[0])[3:])
 
     def normalise(self):
@@ -172,6 +177,8 @@ class MYDTBGA_preprocess():
         outband.SetDescription("Thermal")
         outband.WriteArray(arr_img*0.01)
 
+        return(outfile)
+
 
 class MODIS():
     def __init__(self, data_fp, product):
@@ -181,16 +188,16 @@ class MODIS():
     def build_filepath(self, sdate, edate):
 
         """ Find files based on dates & products for mosaic building. """
-
         sdate=datetime.strptime(os.path.join(sdate), "%Y/%m/%d").date()
         edate=datetime.strptime(os.path.join(edate), "%Y/%m/%d").date()
         dates=[sdate+timedelta(days=x) for x in range((edate-sdate).days+1)]
+        missing=[]
         if self.product == "MYD09GA" or "MYDTBGA":
             ####### VERSION TO BE REMOVED ONCE 061 EXISTS!!! ###########
             ### Create function where used can specify "antarctica" and it will select tiles for that region
             ### And they can specify specific tiles to merge
             if self.product == "MYDTBGA":
-                version = "061"
+                version = "006"
             elif self.product == "MYD09GA":
                 version = input("What MYD09GA version would you like, 006 or 061?:\n")
             tiles = sorted(glob.glob((self.data_fp+"MODIS/"+self.product+"_"+version+"/"+"01_tiles"+"/*")))
@@ -201,26 +208,81 @@ class MODIS():
             imgs=[]
             for t in tiles:
                 files_lst = glob.glob((t+"/"+d+"/02_*.tif"))
-                if len(files_lst) == 1: path=files_lst[0]
+                if len(files_lst) >= 1: path=files_lst[0]
+                elif len(files_lst) == 0: missing.append([t, d])
                 imgs.append(path)
-            mosaic.append(imgs)
-        return(mosaic, dates)
+            if all(i for i in imgs for t in tiles) and len(imgs) == len(tiles):mosaic.append(imgs)
+            else:continue
+        if len(mosaic) != len(dates):
+            mos, dts=[],[]
+            for d in dates:
+                for i in mosaic:
+                    res=[string for string in i if d in string]
+                    if bool(res) == True:
+                        dts.append(d)
+                        mos.append(res)
+                    elif bool(res) == False:
+                        missing.append(d)
+            mosaic=mos
+            dates=dts
+            miss = [n for n, freq in sorted(Counter(missing).items()) if freq == max(Counter(missing).values())]
+            missing.append(miss)
 
-    def build_mosaic(self, imgs, date, r):
+        return(mosaic, dates, missing)
+
+    def build_mosaic(self, imgs, date, version, r):
+        
+        """ Build a mosaic for each date. Where files are missing, no mosaic is built.
+            For overlapping images, the xml (VRT) is modified to calculate the mean"""
+        
         if self.product == "MYD09GA" or "MYDTBGA":
-            #### VERSION TO BE REMOVED ONCE 061 exists for MYDTBGA #####
-            outdir=(self.data_fp+"MODIS/"+self.product+"_061/02_mosaic/")+date
+            outdir=(self.data_fp+"MODIS/"+self.product+"_"+version+"/02_mosaic/")+date
             if not os.path.isdir(outdir): os.makedirs(outdir)
-            if r == True:outfile=outdir+("/02a_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.tif")
-            else:outfile=outdir+("/02_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.tif")
-            os.system("gdal_merge.py -q -o %s %s"%(outfile, " ".join(imgs)))
-
-            return(outfile)
+            txt=outdir+"/"+self.product+"_"+("".join(date.rsplit("/")))+"_files4merge.txt"
+            with open(txt, "w") as f:
+                for item in imgs:
+                    f.write("%s\n" % item)
+            outvrt=outdir+("/02a_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.vrt")
+            os.system("gdalbuildvrt -q --config GDAL_VRT_TRUSTED_MODULES YES %s -srcnodata 0 -input_file_list %s"%(outvrt, txt))
+            
+            # Modify the xml (VRT) file for claculating mean pixel value where images overlap.
+            header = """  <VRTRasterBand dataType="Float32" band="1" subClass="VRTDerivedRasterBand">"""
+            contents = """
+            <PixelFunctionType>{0}</PixelFunctionType>
+            <PixelFunctionLanguage>Python</PixelFunctionLanguage>
+            <PixelFunctionCode><![CDATA[{1}]]>
+            </PixelFunctionCode>"""
+            lines = open(outvrt, "r").readlines()
+            lines[3] = header
+            lines.insert(4, contents.format("average", """
+import numpy as np
+import sys
+def average(in_ar, out_ar, xoff, yoff, xsize, ysize, raster_xsize,raster_ysize, buf_radius, gt, **kwargs):
+    div = np.zeros(in_ar[0].shape)
+    
+    for i in range(len(in_ar)):
+        div += (in_ar[i] != 0)
+    div[div == 0] = 1
+    
+    y = np.sum(in_ar, axis = 0, dtype = 'Float32')
+    y = y / div
+    
+    np.clip(y,0,300, out = out_ar)"""))
+            open(outvrt, 'w').write("".join(lines))
+            outfile=outdir+("/02a_"+self.product+"_"+("".join(date.rsplit("/")))+"_ANTARCTICA.tif")
+            os.system("gdal_translate -q --config GDAL_VRT_ENABLE_PYTHON YES %s %s"%(outvrt, outfile))
+            os.remove(txt)
+            os.remove(outvrt)
+        return(outfile)
 
     def resample(self, img):
+
+        """ Reseample imagery to a 0.1 deg spatial resolution """
+
         xres, yres = 0.1, 0.1
         outfile=(os.path.split(img)[0]+"/02"+os.path.basename(img)[3:])
         os.system("gdal_translate -q -tr %s %s -r bilinear %s %s"%(xres, yres, img, outfile))
+
 
 
 class amsr2_preprocess():
