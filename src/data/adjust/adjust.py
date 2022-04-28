@@ -4,9 +4,12 @@
 
 import argparse, argcomplete
 from argcomplete.completers import ChoicesCompleter, FilesCompleter
-import toolkit as tk
+from pathlib import Path
+import toolkit_ as tk
 from tqdm import tqdm
 import os, sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+"/acquire")
+import toolkit as tk_db
 
 parser = argparse.ArgumentParser(description="""
 ===================================================
@@ -76,9 +79,47 @@ if __name__ == "__main__":
                         tk.amsr2_preprocess(resampled_sic_img).mask()
         elif bool(args.data_folder)==True and bool(args.start_date)==True and bool(args.end_date)==True and bool(args.product)==True:
             data_folder, sdate, edate, product=args.data_folder, args.start_date, args.end_date, args.product
-            images, dates= tk.MODIS(data_folder, product).build_filepath(sdate, edate)
-            for i, d in zip(images, dates):
-                mosaic_img = tk.MODIS(data_folder, product).build_mosaic(i, d, args.resample)
+            if product == "MYD09GA":
+                version = input("What MYD09GA version would you like, 006 or 061?:\n")
+            images, dates, missing= tk.MODIS(data_folder, product).build_filepath(sdate, edate)
+            '''
+            if not len(missing) == 0:
+                # Data inconsitencies means the following two tiles require removal from the "missing" list.
+                for m in missing[:]:
+                    if (os.path.split(m[0])[1]) == "h14v17" or (os.path.split(m[0])[1]) == "h21v17":
+                        missing.remove(m)
+            '''
+            if not len(missing) == 0:
+                # Offer the opportunity to download the missing data. 
+                dwnld_missing = input("Based on entries, there is missing data. Would you like to see this list? (Y or N)\n")
+                if dwnld_missing == "Y":
+                    print("The following dates have missing data:")
+                    print(*missing,sep='\n')
+                    dwnld = input("Would you like to download the missing data? (Y or N)\n")
+                elif dwnld_missing == "N":
+                    dwnld = input("Would you like to download the missing data? (Y or N)\n")
+                if dwnld == "Y":
+                    mdate = list(set([m[1]+"/" for m in missing]))
+                    mtile = list(set([os.path.split(m[0])[1] for m in missing]))
+                    mroot = list(set([os.path.split(m[0])[0]+"/" for m in missing]))[0]
+                    output = tk_db.scan_database(None, None, None, product, None, None, None, None).file_iterator(dates=mdate,tiles=mtile,root=mroot)
+                    if not output == None:
+                        for imgs in images:
+                            if all(("/".join(os.path.split(output)[0].rsplit("/", 3)[1:])) in i for i in imgs):
+                                imgs.append(output)
+                if dwnld == "N":
+                    # Remove the date to which data is missing to avoid creating mosaic.
+                    mdates = list(set([m[1] for m in missing]))
+                    if any(x in dates for x in mdates):
+                        for md in mdates:
+                            for i, d in zip(images, dates):                                
+                                if all(md in im for im in i) and md in d:
+                                    images.remove(i)
+                                    dates.remove(d)
+
+            for i, d in zip(images, dates): 
+                if product == "MYDTBGA": version="006"
+                mosaic_img = tk.MODIS(data_folder, product).build_mosaic(i, d, version, args.resample)
                 if args.resample == True:
                     tk.MODIS(data_folder, product).resample(mosaic_img)
         #==================================================================
