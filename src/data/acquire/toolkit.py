@@ -274,7 +274,6 @@ class scan_database():
                             # Remove raw file and extracted hdf files.
                             os.remove([f for f in files if os.path.basename(f).startswith("01_") == True][0])
                             shutil.rmtree(f)
-
                     elif (all(os.path.basename(item)[0:2] == "02" for item in files)):
                         # If required file exists, then continue.
                         continue

@@ -206,12 +206,16 @@ class MODIS():
         mosaic=[]
         for d in dates:
             imgs=[]
+            ntiles=[]
             for t in tiles:
-                files_lst = glob.glob((t+"/"+d+"/02_*.tif"))
-                if len(files_lst) >= 1: path=files_lst[0]
+                files_lst = glob.glob((t+"/"+d+"/02_*.tif"))          
+                if len(files_lst) >= 1:
+                    path=files_lst[0]
+                    imgs.append(path)
+                    ntiles.append(t)
                 elif len(files_lst) == 0: missing.append([t, d])
-                imgs.append(path)
-            if all(i for i in imgs for t in tiles) and len(imgs) == len(tiles):mosaic.append(imgs)
+
+            if all(i for i in imgs for t in tiles) and len(imgs) == len(ntiles):mosaic.append(imgs)
             else:continue
         if len(mosaic) != len(dates):
             mos, dts=[],[]
@@ -225,8 +229,8 @@ class MODIS():
                         missing.append(d)
             mosaic=mos
             dates=dts
-            miss = [n for n, freq in sorted(Counter(missing).items()) if freq == max(Counter(missing).values())]
-            missing.append(miss)
+            #miss = [n for n, freq in sorted(Counter(missing).items()) if freq == max(Counter(missing).values())]
+            #missing.append(miss)
 
         return(mosaic, dates, missing)
 

@@ -82,6 +82,7 @@ if __name__ == "__main__":
             if product == "MYD09GA":
                 version = input("What MYD09GA version would you like, 006 or 061?:\n")
             images, dates, missing= tk.MODIS(data_folder, product).build_filepath(sdate, edate)
+
             '''
             if not len(missing) == 0:
                 # Data inconsitencies means the following two tiles require removal from the "missing" list.
@@ -102,7 +103,7 @@ if __name__ == "__main__":
                     mdate = list(set([m[1]+"/" for m in missing]))
                     mtile = list(set([os.path.split(m[0])[1] for m in missing]))
                     mroot = list(set([os.path.split(m[0])[0]+"/" for m in missing]))[0]
-                    output = tk_db.scan_database(None, None, None, product, None, None, None, None).file_iterator(dates=mdate,tiles=mtile,root=mroot)
+                    output = tk_db.scan_database(data_folder, None, None, product, None, None, None, None).file_iterator(dates=mdate,tiles=mtile,root=mroot)
                     if not output == None:
                         for imgs in images:
                             if all(("/".join(os.path.split(output)[0].rsplit("/", 3)[1:])) in i for i in imgs):
@@ -122,6 +123,8 @@ if __name__ == "__main__":
                 mosaic_img = tk.MODIS(data_folder, product).build_mosaic(i, d, version, args.resample)
                 if args.resample == True:
                     tk.MODIS(data_folder, product).resample(mosaic_img)
+                for img in i:
+                    os.remove(img)
         #==================================================================
         # Run and errors:
     except RuntimeError as msg:
