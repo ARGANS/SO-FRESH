@@ -17,15 +17,15 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 
 if __name__ == "__main__":
     try:
-        parser.add_argument("-d", "--data-folder")
-        parser.add_argument("-s", "--start-date")
-        parser.add_argument("-e", "--end-date")
-        parser.add_argument("-p", "--product")
+        parser.add_argument("-d", "--data-folder", help="Filepath to the data folder. i.e. 'fp/02_data'")
+        parser.add_argument("-s", "--start-date", help="Lower-limit of date selection in YYYY/MM/DD format.")
+        parser.add_argument("-e", "--end-date", help="Upper-limit of date selection in YYYY/MM/DD format.")
+        parser.add_argument("-p", "--product", help="Product of interest for acquisition. Setup for: MYD09GA / MYDTBGA.")
         parser.add_argument("-aoi", "--area-of-interest", default=None, help="Specify area of interest, i.e. 'antarctica'.")
-        parser.add_argument("-hmin", "--horizontal-minimum", default=None)
-        parser.add_argument("-hmax", "--horizontal-maximum", default=None)
-        parser.add_argument("-vmin", "--vertical-minimum", default=None)
-        parser.add_argument("-vmax", "--vertical-maximum", default=None)
+        parser.add_argument("-hmin", "--horizontal-minimum", default=None, help="Minimum horizontal MODIS sinusoidal tile.")
+        parser.add_argument("-hmax", "--horizontal-maximum", default=None, help="Maximum horizontal MODIS sinusoidal tile.")
+        parser.add_argument("-vmin", "--vertical-minimum", default=None, help="Minimum vertical MODIS sinusoidal tile.")
+        parser.add_argument("-vmax", "--vertical-maximum", default=None, help="Maximum vertical MODIS sinusoidal tile.")
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
 

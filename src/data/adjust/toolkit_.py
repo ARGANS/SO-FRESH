@@ -188,6 +188,7 @@ class MODIS():
     def build_filepath(self, sdate, edate):
 
         """ Find files based on dates & products for mosaic building. """
+        
         sdate=datetime.strptime(os.path.join(sdate), "%Y/%m/%d").date()
         edate=datetime.strptime(os.path.join(edate), "%Y/%m/%d").date()
         dates=[sdate+timedelta(days=x) for x in range((edate-sdate).days+1)]

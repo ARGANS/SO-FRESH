@@ -10,6 +10,16 @@ import os, sys
 parser = argparse.ArgumentParser(description="""
 ===================================================
 ### Imagery fusion ###
+Fusing of listed products - mosaic MODIS imagery before.
+
+# data-folder
+    ~for data access & saving
+# start-date
+    ~lower limit of date selection
+# end-date 
+    ~upper limit of date selection
+# products
+    ~list of products for fusing
 ===================================================""",
 formatter_class=argparse.RawDescriptionHelpFormatter)
 
@@ -19,8 +29,6 @@ if __name__ == "__main__":
         parser.add_argument("-s", "--start-date")
         parser.add_argument("-e", "--end-date")
         parser.add_argument("-p", "--products", nargs="+")
-        #parser.add_argument()
-        #parser.add_argument()
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
 

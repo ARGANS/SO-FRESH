@@ -13,25 +13,37 @@ import toolkit as tk_db
 
 parser = argparse.ArgumentParser(description="""
 ===================================================
-### Imagery pre-processing and adjustment. ###
-Pre-processing and adjustment options:
-- File renaming (add 01 at the begining of the file)
-    - input: raw downloaded file.
-- Project MYD09GA (optical).
-    - input: 01_MYD09GA.jpg file.
-- Extract and normalise MYDTBGA (thermal).
-    - input: 01_MYDTBGA.hdf file.
-- Extract and project AMSR2 SIC (Sea Ice Concentration).
-    - input: 01_ESACCI_AMSR2_SIC.nc file.
-    - include '-r' for data to be resampled*
-===================================================
+### Imagery adjustment and pre-processing. ###
+Adjustment and pre-processing options:
+# input
+    ~ filepath to raw downloaded files (can use asterix/* for multiple files)
+      and can be applied to:
+        ~ MYD09GA.jpg
+            - applies projection
+        ~ MYDTBGA.hdf
+            - extracts -> normalises
+        ~ AMSR.nc
+            - extract -> project 
+# optional: 
+# resample
+    ~ use ~r for data resampling (0.1 degs)
+___________________________________________________
+
 ### Imagery mosaic and resampling. ###
-For AMSR2 Ice Concentration - check step above.
-For MYD09GA & MYDTBGA:
-    - data_folder: filepath to folder containing all data in.
-    - start/end_date: lower and upper time threshold (each date will be an individual image).
-    - product: MYD09GA & MYDTBGA
-    - include '-r' for the data to be resampled.
+###         (MODIS data)           ###
+# data-folder
+    ~for data access & saving
+# start-date
+    ~lower limit of date selection
+# end-date 
+    ~upper limit of date selection
+# product
+    ~product for download
+
+# optional:
+# resample
+    ~ use ~r for data resampling (0.1 degs)
+
 ===================================================""",
 formatter_class=argparse.RawDescriptionHelpFormatter)
 

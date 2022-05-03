@@ -58,6 +58,7 @@ class lpdaac_download():
     def product_selector(self):
 
         """ Identifies product requested for download and specifies the URL. """
+
         if self.product == "MYD09GA":
             response = requests.get("https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.061/").text
             url = "https://e4ftl01.cr.usgs.gov/MOLA/MYD09GA.061/"
@@ -281,6 +282,9 @@ class scan_database():
 
               
     def individual_url_extractor(self, ind_dates=None, h=None, v=None):
+
+        """ Pulls the URL of a specified product which fits the criteria and creates its output directory """
+
         url= self.product_selector()
         prods_links, outdirs=[],[]
         for date in ind_dates:

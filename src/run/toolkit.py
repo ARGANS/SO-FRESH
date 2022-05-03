@@ -181,6 +181,9 @@ class execute_APIT():
 
 
     def generate_netcdf(self, img_lst, data_folder, sdate, edate):
+
+        """ Generate a netcdf output """
+
         if sdate[:-6] == edate[:-6]:
             if sdate[5:-3] == edate[5:-3]:
                 outdir = str(Path(data_folder).parent)+"/03_APIT/netCDF/"+str(Path(img_lst[0]).parents[3].name)+"/"+str(Path(img_lst[0]).parents[2].name)+"/"+str(Path(img_lst[0]).parents[1].name)+"/"
