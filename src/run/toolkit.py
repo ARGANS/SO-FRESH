@@ -167,16 +167,18 @@ class execute_APIT():
         prods=self.band_selector()
         for img in tqdm(self.data_lst):
             reader=self.image_reader(img, prods)
+            print(reader[0])
+            print("----")
+            print(reader[1])
+            sys.exit()
             if len(self.products) == len(reader):
                 band_exp, calc_exp = self.expression_builder(img, reader, prods)
                 outdir = str(Path(data_folder).parent)+"/03_APIT/"+str(Path(img).parents[3].name)+"/"+str(Path(img).parents[2].name)+"/"+str(Path(img).parents[1].name)+"/"+str(Path(img).parents[0].name)+"/"
                 if not os.path.isdir(outdir): os.makedirs(outdir)
                 outfile = outdir+"03"+(os.path.basename(img)[2:])
                 outfiles.append(outfile)
-                #tmpout = outdir+"03a"+(os.path.basename(img)[2:])
                 os.system("gdal_calc.py --quiet %s --outfile=%s --calc='%s' --overwrite"%(band_exp, outfile, calc_exp))
-                #os.system("gdal_translate -q -b 1 %s %s"%(tmpout, outfile))
-
+                
         return(outfiles)
 
 
