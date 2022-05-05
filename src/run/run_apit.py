@@ -15,9 +15,9 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
 
 if __name__ == "__main__":
     try:
-        parser.add_argument("-d", "--data-folder", help="")
-        parser.add_argument("-s", "--start-date", help="")
-        parser.add_argument("-e", "--end-date", help="")
+        parser.add_argument("-d", "--data-folder", help="Filepath to the folder containing all data.)
+        parser.add_argument("-s", "--start-date", help="Time lower bound (YYYY/MM/DD).")
+        parser.add_argument("-e", "--end-date", help="Time upper bound (YYYY/MM/DD).")
         parser.add_argument("-p", "--products", nargs="+", help="Product(s) to execute APIT on.")
         #parser.add_argument()
         #parser.add_argument()

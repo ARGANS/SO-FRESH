@@ -104,7 +104,7 @@ if __name__ == "__main__":
             '''
             if not len(missing) == 0:
                 # Offer the opportunity to download the missing data. 
-                dwnld_missing = input("Based on entries, there is missing data. Would you like to see this list? (Y or N)\n")
+                dwnld_missing = input(f"Based on entries, there is missing data. Would you like to see this list of {len(missing)} missing files? (Y or N)\n")
                 if dwnld_missing == "Y":
                     print("The following dates have missing data:")
                     print(*missing,sep='\n')
