@@ -255,7 +255,8 @@ class scan_database():
                         # If there is just the raw files - delete & re-download.
                         # The extraction & normalisation has failed in prior download step.
                         print(f"Found an issue with tile h{h}v{v} on {d}, re-downloading and processing...")
-                        os.remove(files[0])
+                        if os.path.isdir(files[0]): shutil.rmtree(files[0]) 
+                        elif os.path.isfile(files[0]): os.remove(files[0])
                         links, outdirs = self.individual_url_extractor(ind_dates=d, h=h, v=v, version=version)
                         dwnld_output = lpdaac_download(self.data_folder, self.sdate, self.edate, self.product, self.hmin, self.hmax, self.vmin, self.vmax).download([links], [outdirs])
                     elif (all(os.path.basename(item)[0:2] == "01" for item in files)) and len(files) == 2:
