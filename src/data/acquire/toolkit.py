@@ -231,7 +231,7 @@ class scan_database():
                 tiles.append(tile)
         return(tiles)
 
-    def file_iterator(self, dates=None,tiles=None,root=None):
+    def file_iterator(self, dates=None,tiles=None,root=None, version=None):
 
         """ Itterates through specified range of dates and tiles, checks present files and downloads or processes, based on what is available. """
 
@@ -244,7 +244,7 @@ class scan_database():
                     files=glob.glob(fp+"*")
                     if len(files) == 0:
                         print(f"Searching for files for h{h}v{v} on {d}...")
-                        links, outdirs = self.individual_url_extractor(ind_dates=d, h=h, v=v)
+                        links, outdirs = self.individual_url_extractor(ind_dates=d, h=h, v=v, version=version)
                         if links == None and outdirs == None:
                             dwnld_output=None
                             print("No files found, passing...")
@@ -256,7 +256,7 @@ class scan_database():
                         # The extraction & normalisation has failed in prior download step.
                         print(f"Found an issue with tile h{h}v{v} on {d}, re-downloading and processing...")
                         os.remove(files[0])
-                        links, outdirs = self.individual_url_extractor(ind_dates=d, h=h, v=v)
+                        links, outdirs = self.individual_url_extractor(ind_dates=d, h=h, v=v, version=version)
                         dwnld_output = lpdaac_download(self.data_folder, self.sdate, self.edate, self.product, self.hmin, self.hmax, self.vmin, self.vmax).download([links], [outdirs])
                     elif (all(os.path.basename(item)[0:2] == "01" for item in files)) and len(files) == 2:
                         # If there is the raw files & extraction directory (ED), but ED is empty, the raw file is corrupt.
@@ -266,7 +266,7 @@ class scan_database():
                             print(f"Found a corrupt file for for tile h{h}v{v} on {d}, re-downloading and processing...")
                             shutil.rmtree(f)
                             os.remove(files[0])
-                            links, outdirs = self.individual_url_extractor(ind_dates=d, h=h, v=v)
+                            links, outdirs = self.individual_url_extractor(ind_dates=d, h=h, v=v, version=version)
                             dwnld_output = lpdaac_download(self.data_folder, self.sdate, self.edate, self.product, self.hmin, self.hmax, self.vmin, self.vmax).download([links], [outdirs])
                         elif len(os.listdir(f)) == 7 and any(fname.endswith('_4.tif') for fname in os.listdir(f)):
                             # If the extraction directory happens to have the files in, then normalise. 
@@ -281,7 +281,7 @@ class scan_database():
         return(dwnld_output)
 
               
-    def individual_url_extractor(self, ind_dates=None, h=None, v=None):
+    def individual_url_extractor(self, ind_dates=None, h=None, v=None, version=None):
 
         """ Pulls the URL of a specified product which fits the criteria and creates its output directory """
 
@@ -291,18 +291,22 @@ class scan_database():
             date = (str(ind_dates).replace("/", ".")[:-1]+"/")
             dpage = requests.get(url+date).text
             soup = BeautifulSoup(dpage, "lxml")
-            """
+
             if self.product == "MYD09GA":
                 for link in soup.select("a[href$='.jpg']"):
+                    print("here")
                     jpgPath = (url+date+link.get("href"))
-                    h = jpgPath.rsplit("/", 1)[1].rsplit(".", 7)[3][1:3]
-                    v = jpgPath.rsplit("/", 1)[1].rsplit(".", 7)[3][4:]
-                    if h >= self.hmin and h<= self.hmax:
-                        if v >= self.vmin and v <= self.vmax:
-                            prod_lnk = ("%s\n"%jpgPath)
-                            # execute download here
-                            ##### CODE TO BE ADDED FOR OPTICAL DOWNLOAD AND PROCESSING ####
-            """
+                    h_Path = jpgPath.rsplit("/", 1)[1].rsplit(".", 7)[3][1:3]
+                    v_Path = jpgPath.rsplit("/", 1)[1].rsplit(".", 7)[3][4:]
+                    if h_Path != h and v_Path != v:
+                        continue
+                    elif h_Path == h and v_Path == v:
+                        outdir = self.data_folder+"MODIS/"+self.product+version+"/01_tiles/"+"h"+h_Path+"v"+v_Path+"/"+str(date).replace(".", "/")
+                        if not os.path.isdir(outdir): os.makedirs(outdir)
+                        prod_lnk = ("%s\n"%jpgPath)
+                        return(prod_lnk, outdir)
+                return(None, None)
+
             if self.product == "MYDTBGA":
                 for link in soup.select("a[href$='.hdf']"):
                     hdfPath = (url+date+link.get("href"))
@@ -315,7 +319,6 @@ class scan_database():
                         if not os.path.isdir(outdir): os.makedirs(outdir)
                         prod_lnk = ("%s\n"%hdfPath)
                         return(prod_lnk, outdir)
-                
                 return(None, None)
 
     def product_selector(self):

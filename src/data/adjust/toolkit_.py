@@ -185,7 +185,7 @@ class MODIS():
         self.data_fp=data_fp
         self.product=product
 
-    def build_filepath(self, sdate, edate):
+    def build_filepath(self, sdate, edate, version):
 
         """ Find files based on dates & products for mosaic building. """
         
@@ -197,10 +197,13 @@ class MODIS():
             ####### VERSION TO BE REMOVED ONCE 061 EXISTS!!! ###########
             ### Create function where used can specify "antarctica" and it will select tiles for that region
             ### And they can specify specific tiles to merge
+            '''
             if self.product == "MYDTBGA":
                 version = "006"
             elif self.product == "MYD09GA":
-                version = input("What MYD09GA version would you like, 006 or 061?:\n")
+                version = version
+                #input("What MYD09GA version would you like, 006 or 061?:\n")
+            '''
             tiles = sorted(glob.glob((self.data_fp+"MODIS/"+self.product+"_"+version+"/"+"01_tiles"+"/*")))
             dates = ["/".join((str(d.year), str("%02d" %d.month), str("%02d" %d.day))) for d in dates]
         else: raiseRuntimeError("A MODIS product was not picked up, please check product entry")
