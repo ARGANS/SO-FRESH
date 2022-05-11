@@ -9,7 +9,17 @@ import os, sys
 
 parser = argparse.ArgumentParser(description="""
 ===================================================
-
+### Automated Polynya Identification Tool ###
+Execution options:
+# data-folder
+    ~ for data access & saving
+# start-date
+    ~lower limit of date selection
+# end-date 
+    ~upper limit of date selection
+# products
+    ~products for execution
+    (ensure all data is downloaded, pre-processed & (optional) fused)
 ===================================================""",
 formatter_class=argparse.RawDescriptionHelpFormatter)
 
@@ -19,8 +29,6 @@ if __name__ == "__main__":
         parser.add_argument("-s", "--start-date", help="Time lower bound (YYYY/MM/DD).")
         parser.add_argument("-e", "--end-date", help="Time upper bound (YYYY/MM/DD).")
         parser.add_argument("-p", "--products", nargs="+", help="Product(s) to execute APIT on.")
-        #parser.add_argument()
-        #parser.add_argument()
         argcomplete.autocomplete(parser)
         args = parser.parse_args()
 
