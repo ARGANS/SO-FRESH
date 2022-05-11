@@ -32,7 +32,6 @@ class data_selector():
                 p = glob.glob(products+d+"/02_*.tif")
                 if len(p) == 1:filepaths.append(p[0])
                 else: print(f"Multiple files are in {products+d}, please leave only the one to be used.")
-
         ### ADD ELIF STATEMENT AS TO WHETHER THIS PULLS JUST OPTICAL OR THERMAL OR SIC MOSAIC'D PRODUCTS ###
 
         return(filepaths)
@@ -59,18 +58,21 @@ class data_selector():
         except:
             print("No fused products with that order found")
         else:
-            product_fp = []
+            #product_fp = []
             for p in self.products:
                 if p == "MYD09GA":
                     fp = self.data_folder+"MODIS/"+p+"_006/02_mosaic/"
-                    product_fp.append(fp)
+                    #product_fp.append(fp)
+                    return(fp)
                 elif p == "MYDTBGA":
                     fp = self.data_folder+"MODIS/"+p+"_006/02_mosaic/"
-                    product_fp.append(fp)
+                    #product_fp.append(fp)
+                    return(fp)
                 elif p == "SIC":
                     fp = self.data_folder+"AMSR2/sic_extracted/"
-                    product_fp.append(fp)
-            return(product_fp)
+                    #product_fp.append(fp)
+                    return(fp)
+            #return(product_fp)
 
 
 
@@ -188,6 +190,7 @@ class execute_APIT():
         axs[1].imshow(mask, interpolation='nearest')
         axs[2].imshow(foutput, interpolation='nearest')
         plt.show()
+        del fig, axs
         '''
         proj = oimg.RasterXSize, oimg.RasterYSize, oimg.GetProjection(), oimg.GetGeoTransform()
         self.array_to_img(foutput, proj, outfile)
