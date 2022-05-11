@@ -5,9 +5,11 @@ import os, sys
 from datetime import datetime, timedelta
 import glob, gdal, functools
 import numpy as np
+import numpy.ma as ma
 from pathlib import Path
 from itertools import groupby
-from skimage.filters import threshold_otsu, threshold_minimum
+from skimage.filters import threshold_otsu, threshold_minimum, sobel
+from skimage.morphology import binary_erosion, binary_dilation, remove_small_holes, remove_small_objects
 from tqdm import tqdm
 
 class data_selector():
@@ -159,6 +161,37 @@ class execute_APIT():
         return(band_expression, full_expression)
 
 
+    def edge_detection(self, img, sic, outfile):
+
+        """ Apply edge detection for ice-sheet boundary detection for mask generation. """
+
+        oimg = gdal.Open(img)
+        img_arr = oimg.ReadAsArray()
+        # Find ice-sheet edge by applying sobel filter.
+        sobel1=binary_erosion(sobel(sic))
+        clean=remove_small_objects(remove_small_holes(sobel1, area_threshold=10000), min_size=500, connectivity=50)
+        sobel2=sobel(clean, mode="reflect")
+        mask=((sobel2[0]>0.0) & (sobel2[0]<=(np.amax(sobel2[0]))))
+        # Dilate imagery - one dilation is one row of pixels. 
+        mask=binary_dilation(mask) #~ 10 km
+        mask=binary_dilation(mask) #~ 20 km
+        mask=binary_dilation(mask) #~ 30 km
+        mask=binary_dilation(mask) #~ 40 km
+        mask=binary_dilation(mask) #~ 50 km
+        foutput = ma.array(img_arr, mask=mask, fill_value=0)
+        foutput = foutput.filled(fill_value=0)
+        '''
+        # Remove comments to view [1]initial result, [2]mask, [3]masked result.
+        import matplotlib.pyplot as plt
+        fig, axs = plt.subplots(3, 1)
+        axs[0].imshow(img_arr, interpolation='nearest')
+        axs[1].imshow(mask, interpolation='nearest')
+        axs[2].imshow(foutput, interpolation='nearest')
+        plt.show()
+        '''
+        proj = oimg.RasterXSize, oimg.RasterYSize, oimg.GetProjection(), oimg.GetGeoTransform()
+        self.array_to_img(foutput, proj, outfile)
+
     def classification(self, data_folder):
 
         """ Execute APIT classification """
@@ -167,18 +200,18 @@ class execute_APIT():
         prods=self.band_selector()
         for img in tqdm(self.data_lst):
             reader=self.image_reader(img, prods)
-            print(reader[0])
-            print("----")
-            print(reader[1])
-            sys.exit()
             if len(self.products) == len(reader):
+                # Generate expression to for feeding in to gdal_calc.
                 band_exp, calc_exp = self.expression_builder(img, reader, prods)
                 outdir = str(Path(data_folder).parent)+"/03_APIT/"+str(Path(img).parents[3].name)+"/"+str(Path(img).parents[2].name)+"/"+str(Path(img).parents[1].name)+"/"+str(Path(img).parents[0].name)+"/"
                 if not os.path.isdir(outdir): os.makedirs(outdir)
                 outfile = outdir+"03"+(os.path.basename(img)[2:])
-                outfiles.append(outfile)
                 os.system("gdal_calc.py --quiet %s --outfile=%s --calc='%s' --overwrite"%(band_exp, outfile, calc_exp))
-                
+                # If SIC is in the inputs, find ice-sheet boundaries and mask those values.
+                if "SIC" in self.products:
+                    sic_arr=(reader[self.products.index("SIC")])
+                    masking = self.edge_detection(outfile, sic_arr, outfile)
+                outfiles.append(outfile)
         return(outfiles)
 
 
@@ -202,7 +235,7 @@ class execute_APIT():
             cols, rows, proj, geom = ds.RasterXSize, ds.RasterYSize, ds.GetProjection(), ds.GetGeoTransform()
             proj_info.append((ds.RasterXSize, ds.RasterYSize, ds.GetProjection(), ds.GetGeoTransform()))
             img_arrays.append(ds.ReadAsArray())
-            ds.close()
+            del ds 
 
         # Check projection info for all images match.
         check = groupby(proj_info)
