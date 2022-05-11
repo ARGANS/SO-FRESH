@@ -24,6 +24,7 @@ def fusion(data_folder, sdate, edate, products):
     if any("MYD09GA" in p for p in products):
         version = input("What MYD09GA version would you like, 006 or 061?:\n")
     for d in dates:
+        print(f"Processing: {d}...")
         imgs_4_fusion=[]
         for p in products:
             if p == "MYD09GA": 
