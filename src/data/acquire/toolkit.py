@@ -170,13 +170,16 @@ class lpdaac_download():
                                     break
                                 d.write(chunk)
                         print(f"Downloaded file: {l}")
-                
-                extract=tk_.MYDTBGA_preprocess(outfile).extract_MYDTBGA()
-                normalise=tk_.MYDTBGA_preprocess((extract+"_4.tif")).normalise()
+                if self.product == "MYD09GA":
+                    prjct_img = tk_.MYD09GA_preprocess(outfile).assign_geometry()
+                    return(prjct_img)
+                if self.product == "MYDTBGA":
+                    extract=tk_.MYDTBGA_preprocess(outfile).extract_MYDTBGA()
+                    normalise=tk_.MYDTBGA_preprocess((extract+"_4.tif")).normalise()
+                    shutil.rmtree(os.path.split(extract)[0], ignore_errors=True)
+                    return(normalise)
                 os.remove(outfile)
-                shutil.rmtree(os.path.split(extract)[0], ignore_errors=True)
-        
-        return(normalise)
+            
 
 class scan_database():
     def __init__(self, data_folder, sdate, edate, product, hmin, hmax, vmin, vmax):
@@ -295,14 +298,13 @@ class scan_database():
 
             if self.product == "MYD09GA":
                 for link in soup.select("a[href$='.jpg']"):
-                    print("here")
                     jpgPath = (url+date+link.get("href"))
                     h_Path = jpgPath.rsplit("/", 1)[1].rsplit(".", 7)[3][1:3]
                     v_Path = jpgPath.rsplit("/", 1)[1].rsplit(".", 7)[3][4:]
                     if h_Path != h and v_Path != v:
                         continue
                     elif h_Path == h and v_Path == v:
-                        outdir = self.data_folder+"MODIS/"+self.product+version+"/01_tiles/"+"h"+h_Path+"v"+v_Path+"/"+str(date).replace(".", "/")
+                        outdir = self.data_folder+"MODIS/"+self.product+"_"+version+"/01_tiles/"+"h"+h_Path+"v"+v_Path+"/"+str(date).replace(".", "/")
                         if not os.path.isdir(outdir): os.makedirs(outdir)
                         prod_lnk = ("%s\n"%jpgPath)
                         return(prod_lnk, outdir)

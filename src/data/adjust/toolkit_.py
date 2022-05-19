@@ -95,6 +95,8 @@ class MYD09GA_preprocess():
             outband=outdataset.GetRasterBand(count)
             outband.WriteArray(arr)
             outband=None
+        
+        return(outfile)
 
 class MYDTBGA_preprocess():
     def __init__(self, img, csv=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../", "aux_files/modis_sinusoidal_tiles.csv")), epsg=4326):
@@ -109,7 +111,6 @@ class MYDTBGA_preprocess():
         if self.img.endswith(".hdf"):
             if os.path.basename(self.img).rsplit(".")[3][0] == "h" and os.path.basename(self.img).rsplit(".")[3][3] == "v":
                 h, v = os.path.basename(self.img).rsplit(".")[3][1:3], os.path.basename(self.img).rsplit(".")[3][4:6]
-                print("h",h,"v",v)
             else:
                 raise RuntimeError("Unable to find appropriate matching tiles.")
         elif self.img.endswith(".tif"):

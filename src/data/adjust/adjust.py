@@ -73,7 +73,7 @@ if __name__ == "__main__":
                 # Check if file requires to be renamed.
                 if filename.startswith(("BROWSE", "MYDTBGA", "ESACCI")) and filename.endswith((".jpg", ".hdf", ".nc")):
                     walk_fp = os.path.split(img)[0]
-                    tk.aux_func(walk_fp).rename()
+                    tk.aux_func().rename(walk_fp)
                 # Check if thermal data requires to be extracted from hdf.
                 elif filename.startswith("01_") and filename.endswith(".hdf"):
                     extract = tk.MYDTBGA_preprocess(img).extract_MYDTBGA()
@@ -89,6 +89,7 @@ if __name__ == "__main__":
                     if args.resample == True:
                         resampled_sic_img = tk.amsr2_preprocess(rpjct_sic_img).resample()
                         tk.amsr2_preprocess(resampled_sic_img).mask()
+                # add elif for just resampling of products begining with 02a
         elif bool(args.data_folder)==True and bool(args.start_date)==True and bool(args.end_date)==True and bool(args.product)==True:
             data_folder, sdate, edate, product=args.data_folder, args.start_date, args.end_date, args.product
             if product == "MYD09GA":
