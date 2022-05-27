@@ -6,6 +6,7 @@ Argument parser for the Automated Polynya Identification Tool.
 
 # Package loader # 
 import os, sys
+import glob
 from datetime import date, datetime, timedelta
 
 # Toolkit loader #
@@ -41,14 +42,22 @@ class argument_receiver:
         # Login & setup workspace for LPDAAC data download.
         netrcdir, urs = LPDAAC.earthdata_authentication()
         # Execute download and pre-processing.
-        LPDAAC.execute_download(self.data_directory, items, output_dirs, adjust=True)
+        # MYD09GA - Reprojection & optional: resampling & mosaicing.
+        # MYDTBGA - Extraction, normalising, reprojection & optional: resampling & mosaicing.
+        # Check lists are the same length so that incorrect data is not selected.
+        if len(output_dirs) == len(items):
+            # Turn in to dictionary for efficient downloading for the mosaicing process.
+            dir_dict, url_dict = adj_tk.myd_adjust.sort_inputs_by_date(adjust_dates, items, output_dirs)
+        else:
+            raise RuntimeError(f"The length of the download directories to download product to not match. Directories={len(output_dirs)} & products={len(items)}")
 
-        print(items)
-        print(output_dirs)
-        #print(self.data_directory)
-        #print(acquire_dates)
-        #print(self.product)
-        #print(aoi)
+        for url, dir in zip(url_dict.keys(), dir_dict.keys()):
+            if not url == dir:
+                raise RuntimeError("The key order of the input dictionary is not the same.")
+            else:
+                download = LPDAAC.execute_download(self.data_directory, url_dict[url], dir_dict[dir], resample=self.resample, adjust=True)
+                mosaic = adj_tk.myd_adjust.mosaic(self.data_directory, download, self.product, url, self.aoi) #url=date
+
 
     
     def acquire_parser(self):
@@ -69,25 +78,37 @@ class argument_receiver:
         # Login & setup workspace for LPDAAC data download.
         netrcdir, urs = LPDAAC.earthdata_authentication()
         # Execute download.
-        download = LPDAAC.execute_download(self.data_directory, items, output_dirs, adjust=False)
-        '''print("inputs, acq")
-        print(self.process)
-        print(self.data_directory)
-        print(self.product)
-        print(self.aoi)
-        print(self.start_date)
-        print(self.end_date)
-        print(self.resample)'''
+        download = LPDAAC.execute_download(self.data_directory, items, output_dirs, resample=self.resample, adjust=False)
 
     def adjust_parser(self):
-        print("inputs, adj")
+        # Format inputs.
+        PF = parameter_formatting(self.aoi, self.product, self.start_date, self.end_date)
+        aoi = None
+        if all("MYD" in p for p in self.product):aoi = PF.modis_aoi_formater()
+        elif all("SIC" in p for p in self.product):
+            raise RuntimeError("The download setup for AMSR-2 sea-ice concentration is not setup, please head over to the European Space Angency's Climate Change Initiative (CCI) toolbox.")
+        adjust_dates = PF.adjust_date_formater()
+        if self.product[0] == "MYD09GA":product = "MYD09GA_061"
+        elif self.product[0] == "MYDTBGA":product = "MYDTBGA_006"
+        tiles = adj_tk.myd_adjust.aoi_tile_identifier(aoi[0], aoi[1], aoi[2], aoi[3])
+        for d in adjust_dates:
+            # Pull all files from those tiles+date folders begining with "02" and ending with "tif"
+            files_list = [item for sublist in [glob.glob(self.data_directory+"02_data/MODIS/"+product+"/01_tiles/"+t+"/"+d+"/02*.tif") for t in tiles] for item in sublist]
+            mosaic = adj_tk.myd_adjust.mosaic(self.data_directory, files_list, self.product, d, self.aoi)
+            #import pprint
+            #pprint.pprint((flat_list))
+            sys.exit()
+        print("ADJUST TO BE SORTED")
         print(self.process)
         print(self.data_directory)
         print(self.product)
         print(self.aoi)
+        print(aoi)
         print(self.start_date)
         print(self.end_date)
+        print(adjust_dates)
         print(self.resample)
+        sys.exit()
 
     def fusion_parser(self):
         print("inputs, fusion")

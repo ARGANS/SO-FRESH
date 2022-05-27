@@ -119,30 +119,20 @@ class lpdaac:
             data_directory=data_directory.strip("'").strip('"')+os.sep
     
     @staticmethod
-    def execute_download(data_directory, links, dirs, adjust=None):
-
+    def execute_download(data_directory, links, dirs, resample=None, adjust=None):
+        
         """ Execute data download from Earth data. """
 
+        imgs_4_mosaic = []
         netrcdir, urs = lpdaac.earthdata_authentication()
+        if adjust == True: print("Downloading and adjusting...\n")
+        else: print("Downloading...\n")
         for l, d in tqdm(zip(links, dirs), total=len(links)):
             lpdaac.workspace_setup(data_directory, l)
             outfile=d+"01_"+str(l.split("/")[-1].strip())
-            if adjust == True:
-                if os.path.exists((os.path.split(outfile))[0]+"/02_"+(os.path.split(outfile)[1])[3:-3]+"tif"):
-                    continue
-                elif os.path.exists(outfile) and not os.path.exists((os.path.split(outfile))[0]+"/02_"+(os.path.split(outfile)[1])[3:-3]+"tif"):
-                    if "MYD09GA" in outfile:
-                        OPT_adj = adj_tk.myd09ga_adjust(outfile)
-                        test = OPT_adj.assign_geometry()
-                        # ASSIGN GEOMETRY and resample- output as 02, del 01. 
-                    elif "MYDTBGA" in outfile:
-                        # extract, normalise, assign geometry and resample
-                        print("MYDTBGA in", outfile)
-                    print("TO BE PROCESSED")
-                    sys.exit()
-            else:pass
             if os.path.exists(outfile) or os.path.exists((os.path.split(outfile))[0]+"/02_"+(os.path.split(outfile)[1])[3:-3]+"tif"):
-                continue   
+                imgs_4_mosaic.append((os.path.split(outfile))[0]+"/02_"+(os.path.split(outfile)[1])[3:-3]+"tif")
+                pass   
             else:
                 with requests.get(l.strip(), verify=False, stream=True, auth=(netrc(netrcdir).authenticators(urs)[0], netrc(netrcdir).authenticators(urs)[2])) as response:
                     if response.status_code != 200:
@@ -157,4 +147,30 @@ class lpdaac:
                                     break
                                 d.write(chunk)
                         print(f"Downloaded file: {l}")
-            
+            if adjust == True:
+                if os.path.exists((os.path.split(outfile))[0]+"/02_"+(os.path.split(outfile)[1])[3:-3]+"tif"):
+                    imgs_4_mosaic.append((os.path.split(outfile))[0]+"/02_"+(os.path.split(outfile)[1])[3:-3]+"tif")
+                    continue
+                elif os.path.exists(outfile) and not os.path.exists((os.path.split(outfile))[0]+"/02_"+(os.path.split(outfile)[1])[3:-3]+"tif"):
+                    if "MYD09GA" in outfile:
+                        OPT_adj = adj_tk.myd09ga_adjust(outfile)
+                        rpjct = OPT_adj.reproject()
+                        if not resample == "False":
+                            rename = os.path.split(rpjct)[0]+"/"+os.path.split(rpjct)[1][:2]+"a"+os.path.split(rpjct)[1][2:]
+                            os.rename(rpjct, rename)
+                            xres, yres = resample[0], resample[1]
+                            rsampled = adj_tk.myd_adjust.resample(rename, xres, yres)
+                            os.remove(outfile)
+                            os.remove(rename)
+                            imgs_4_mosaic.append(rsampled)
+                        elif resample == "False":
+                            print("appending reprojected")
+                            imgs_4_mosaic.append(rpjct)
+                        else:pass
+                    elif "MYDTBGA" in outfile:
+                        print("MYDTBGGA processing to be set-up.")
+                        # extract, normalise, assign geometry and resample
+                        sys.exit()
+
+            else:continue
+        return(imgs_4_mosaic)
