@@ -41,6 +41,8 @@ class acquire_modis:
         """ Pulls the URL of all products which have fit the criteria and creates their out directory """
 
         hmin, hmax, vmin, vmax = int(self.aoi[0]), int(self.aoi[1]), int(self.aoi[2]), int(self.aoi[3])
+        if str(self.aoi) == "(14, 24, 15, 17)":roi = "antarctica"
+        elif str(self.aoi) == "(13, 23, 0, 2)":roi = "arctic"
         item_links, outdirs=[],[]
         print("Pulling links of all products that fit input parameters:")
         for date in tqdm(self.acquire_dates):
@@ -60,6 +62,14 @@ class acquire_modis:
                             item_links.append(prod_lnk)
 
             if self.product == "MYDTBGA":
+                ################# CHECK IF THIS IS REAL - IF TRUE DON'T DOWNLOAD #####################
+                print(self.data_directory+"02_data/MODIS/"+self.product+"_006/02_mosaic/"+str(date).replace(".", "/")+"02_"+self.product+"_006_"+str(date).replace(".", "")[:-1]+"_"+roi+".tif")
+                print(str(self.aoi))
+                ### also sort adjust process for this data ###
+                #sys.exit()
+
+
+                sys.exit()
                 for link in soup.select("a[href$='.hdf']"):
                     hdfPath = (url+date+link.get("href"))
                     h = hdfPath.rsplit("/", 1)[1].rsplit(".", 7)[2][1:3]
@@ -164,11 +174,11 @@ class lpdaac:
                             os.remove(rename)
                             imgs_4_mosaic.append(rsampled)
                         elif resample == "False":
-                            print("appending reprojected")
+                            print("Appending reprojected")
                             imgs_4_mosaic.append(rpjct)
                         else:pass
                     elif "MYDTBGA" in outfile:
-                        print("MYDTBGGA processing to be set-up.")
+                        print("MYDTBGA processing to be set-up.")
                         # extract, normalise, assign geometry and resample
                         sys.exit()
 
