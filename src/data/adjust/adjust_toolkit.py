@@ -9,8 +9,11 @@ import os, sys
 from difflib import SequenceMatcher
 import gdal
 import glob, itertools, osr, functools
+import gc # garbagecollector
 import numpy as np
 import pandas as pd 
+import scipy
+from skimage import morphology
 
 class myd_adjust:
     def __init__(self, img):
@@ -40,6 +43,8 @@ class myd_adjust:
         xmin, ymin, xmax, ymax = float(df_row["lon_min"]), float(df_row["lat_min"]), float(df_row["lon_max"]), float(df_row["lat_max"])
         xres, yres = (xmax-xmin)/nx, (ymax-ymin)/ny
 
+        del df, df_row, img_array, ny, nx, xmax, ymin
+        gc.collect()
         return(xmin, xres, 0, ymax, 0, -yres)
 
     def assign_geometry(self, epsg=4326):
@@ -64,6 +69,9 @@ class myd_adjust:
             outband.WriteArray(arr)
             outband=None
         
+        del img_array, outdataset, srs
+        gc.collect()
+
         return(outfile)
     
     @staticmethod
@@ -113,20 +121,19 @@ class myd_adjust:
         # Modify the xml (VRT) file for claculating mean pixel value where images overlap.
         vrtimg = gdal.Open(outvrt)
         vrtcount = vrtimg.RasterCount
-        del vrtimg
         myd_adjust.vrt_mean_overlap(outvrt, vrtcount)
-        outfile=outdir+("/02a_"+product+"_"+("".join(date.rsplit("/")))+"_"+aoi+".tif")
+        outfile=outdir+("/02_"+product+"_"+("".join(date.rsplit("/")))+"_"+aoi+".tif")
         os.system("gdal_translate -q --config GDAL_VRT_ENABLE_PYTHON YES %s %s"%(outvrt, outfile))
-        #if product == "MYD09GA_061":
-        #elif product ==  "MYDTBGA_006"
 
-
-        sys.exit()
+        os.remove(txt)
+        del vrtimg
+        gc.collect()
+        return(outfile)
 
 
     @staticmethod
     def vrt_mean_overlap(vrt, band):
-        if band == 1:
+        if band == 1: # If image is thermal.
             header = """  <VRTRasterBand dataType="Float32" band="1" subClass="VRTDerivedRasterBand">"""
             contents = """
             <PixelFunctionType>{0}</PixelFunctionType>
@@ -151,16 +158,9 @@ def average(in_ar, out_ar, xoff, yoff, xsize, ysize, raster_xsize,raster_ysize, 
     np.clip(y,0,300, out = out_ar)"""))
             open(vrt, 'w').write("".join(lines))
 
-
-        # Append to certain line.
-        # Figure out "lines[3] = header", find out the index / line number this is to be applied to 
-        # Based on this , find the line to insert band 2 and 3 on, should be easy, write to the vrt and sys.exit()
-        # Continue, mosaic should then be written to tif, then delete all input files, and jobs a good'un
-        # Maybe setup if mosaic exists, don't download or anything.
-
-        elif band == 3:
+        elif band == 3: # If image is RGB.
             for b in range(1,4):
-                print(b)
+                header_to_find = f"""  <VRTRasterBand dataType="Float32" band="{b}">"""
                 header = f"""  <VRTRasterBand dataType="Float32" band="{b}" subClass="VRTDerivedRasterBand">"""
                 contents = """
                 <PixelFunctionType>{0}</PixelFunctionType>
@@ -168,8 +168,11 @@ def average(in_ar, out_ar, xoff, yoff, xsize, ysize, raster_xsize,raster_ysize, 
                 <PixelFunctionCode><![CDATA[{1}]]>
                 </PixelFunctionCode>"""
                 lines = open(vrt, "r").readlines()
-                lines[3] = header
-                lines.insert(4, contents.format("average", """
+                count=0
+                for l in lines:
+                    if header_to_find in l:
+                        lines[count] = header
+                        lines.insert(count+1, contents.format("average", """
 import numpy as np
 import sys
 def average(in_ar, out_ar, xoff, yoff, xsize, ysize, raster_xsize,raster_ysize, buf_radius, gt, **kwargs):
@@ -179,40 +182,14 @@ def average(in_ar, out_ar, xoff, yoff, xsize, ysize, raster_xsize,raster_ysize, 
         div += (in_ar[i] != 0)
     div[div == 0] = 1
     
-    y = np.sum(in_ar, axis = 0, dtype = 'Float32')
-    y = y / div
+    y = np.sum(in_ar, axis = 0, dtype = 'Float32') #total of all overlapping pixels
+    y = y / div # total of pixel, divided by number of layers
     
-    np.clip(y,183,324, out = out_ar)"""))
-                open(vrt, 'w').write("".join(lines))
-            
-
-
-
-        '''
-        header = """  <VRTRasterBand dataType="Float32" band="1" subClass="VRTDerivedRasterBand">"""
-        contents = """
-        <PixelFunctionType>{0}</PixelFunctionType>
-        <PixelFunctionLanguage>Python</PixelFunctionLanguage>
-        <PixelFunctionCode><![CDATA[{1}]]>
-        </PixelFunctionCode>"""
-        lines = open(vrt, "r").readlines()
-        lines[3] = header
-        lines.insert(4, contents.format("average", """
-import numpy as np
-import sys
-def average(in_ar, out_ar, xoff, yoff, xsize, ysize, raster_xsize,raster_ysize, buf_radius, gt, **kwargs):
-    div = np.zeros(in_ar[0].shape)
-    
-    for i in range(len(in_ar)):
-        div += (in_ar[i] != 0)
-    div[div == 0] = 1
-    
-    y = np.sum(in_ar, axis = 0, dtype = 'Float32')
-    y = y / div
-    
-    np.clip(y,0,300, out = out_ar)"""))
-        open(vrt, 'w').write("".join(lines))
-        '''
+    np.clip(y,0,255, out = out_ar)"""))
+                        open(vrt, 'w').write("".join(lines))
+                    else:
+                        pass
+                    count = count + 1
 
     @staticmethod
     def aoi_tile_identifier(hmin, hmax, vmin, vmax, csv=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../", "aux_files/modis_sinusoidal_tiles.csv"))):
@@ -247,4 +224,91 @@ class mydtbga_adjust:
     def __init__(self, img):
         self.img = img
 
-    
+class amsr2_adjust:
+    def __init__(self, img, resample, epsg=4326):
+        self.img = img
+        self.resample = resample
+        self.epsg = epsg
+
+    def extract_from_netcdf(self):
+
+        """ Pull the 'ice_conc' variable from the netCDF file and convert it to a tif. """
+
+        date = self.img.rsplit("-")[-2]
+        year, month, day = date[:-4], date[4:-2], date[6:]
+        outdir = os.path.join(os.path.abspath(os.path.join(os.path.dirname(self.img), "../../../02_sic")),year,month,day)
+        if not os.path.isdir(outdir): os.makedirs(outdir)
+        os.system("gdal_translate -q -ot Float32 NETCDF:%s:ice_conc %s"%(self.img, outdir+"/01a_"+os.path.basename(os.path.splitext(self.img)[0])[3:]+".tif"))
+
+        return(outdir+"/01a_"+os.path.basename(os.path.splitext(self.img)[0])[3:]+".tif")
+
+    def reproject(self, img):
+
+        """ Assign known CRS projection to Sea Ice Concentration file. """
+
+        img_open = gdal.Open(img)
+        xsize=img_open.RasterXSize
+        ysize=img_open.RasterYSize
+        meta = img_open.GetMetadata()
+        del img_open
+        lat_max=meta["NC_GLOBAL#geospatial_lat_max"]
+        lat_min=meta["NC_GLOBAL#geospatial_lat_min"]
+        lon_max=meta["NC_GLOBAL#geospatial_lon_max"]
+        lon_min=meta["NC_GLOBAL#geospatial_lon_min"]
+        #if bool(self.resample) == True:outfile=os.path.dirname(img)+"/02a_"+os.path.basename(os.path.splitext(img)[0])[4:]+".tif"
+        outfile=os.path.dirname(img)+"/02a_"+os.path.basename(os.path.splitext(img)[0])[4:]+".tif"
+        os.system("gdalwarp -q -overwrite -ot Float32 -t_srs EPSG:%s -te %s %s %s %s -ts %s %s %s %s"%(self.epsg, lon_min, lat_min, lon_max, lat_max, xsize, ysize, img, outfile))
+        
+        # Clear system.
+        #os.remove(img) # Remove the 01a file.
+        gc.collect()
+        
+        return(outfile)
+
+    @staticmethod
+    def resample(img, xres, yres):
+
+        """ Resample AMSR2 product."""
+        
+        sf = float(gdal.Open(img).GetMetadata()["ice_conc#scale_factor"])
+        outvrt=os.path.dirname(img)+"/02b_"+os.path.basename(os.path.splitext(img)[0])[4:]+".vrt"
+        outfile=os.path.dirname(img)+"/02c_"+os.path.basename(os.path.splitext(img)[0])[4:]+".tif"
+        #xres, yres = self.resample[0], self.resample[1]
+        os.system("gdalbuildvrt -q -tr %s %s -r bilinear %s %s"%(xres, yres, outvrt, img))
+        os.system("gdal_calc.py --quiet -A %s --type='Float32' --outfile %s --calc 'A*%s'"%(outvrt, outfile, sf))
+        
+        # Clear system.
+        os.remove(img)
+        os.remove(outvrt)
+        del sf
+        gc.collect()
+        return(outfile)
+
+    @staticmethod
+    def mask(img):
+
+        """ Generate mask to remove all data which is not the ice-sheet. """
+
+        img_open = gdal.Open(img)
+        cols, rows, proj, geom = img_open.RasterXSize, img_open.RasterYSize, img_open.GetProjection(), img_open.GetGeoTransform()
+        arr = img_open.ReadAsArray()
+        if os.path.basename(img).startswith("02c"):
+            # Resampled image.
+            arr[np.where(arr>100)]=0 # Anything beyond 100, set to 0
+        elif os.path.basename(img).startswith("02a"):
+            # Not resampled image.
+            arr = arr/100 # Change magnitude so values are equal to 0
+            arr[np.where(arr>100)]=0 # Anything beyond 100, set to 0
+            arr[np.where(arr<0)]=-9999 #-32767.0 # Where this value was divided by 100, set back to the 'no data value'.
+
+        mask_arr = morphology.remove_small_objects(scipy.ndimage.binary_fill_holes(arr), min_size=500)
+        arr[np.where(mask_arr<=False)]=-9999
+        outfile = os.path.dirname(img)+"/02_"+os.path.basename(os.path.splitext(img)[0])[4:]+".tif"
+        outdataset=gdal.GetDriverByName("GTiff").Create(outfile, cols, rows, 1, gdal.GDT_Float32)
+        outdataset.SetProjection(proj)
+        outdataset.SetGeoTransform(geom)
+        outband=outdataset.GetRasterBand(1)
+        outband.WriteArray(arr)
+        del img_open, arr
+        os.remove(img)
+        gc.collect()
