@@ -126,6 +126,7 @@ class myd_adjust:
         os.system("gdal_translate -q --config GDAL_VRT_ENABLE_PYTHON YES %s %s"%(outvrt, outfile))
 
         os.remove(txt)
+        os.remove(outvrt)
         del vrtimg
         gc.collect()
         return(outfile)
@@ -221,12 +222,46 @@ class myd09ga_adjust:
         return(outfile)
 
 class mydtbga_adjust:
-    def __init__(self, img):
+    def __init__(self, img, epsg=4326):
         self.img = img
+        self.epsg= epsg
+
+    def extract(self):
+
+        """ Pull thermal band 4 from MYDTBGA HDF product and convert to tif (MODIS Band 32). """
+
+        process_dir = os.path.split(os.path.abspath(self.img))[0]+("/01a_"+os.path.basename(os.path.splitext(self.img)[0])[3:])
+        if not os.path.isdir(process_dir): os.mkdir(process_dir)
+        else: shutil.rmtree(process_dir)
+        os.system("gdal_translate -q -of GTIFF -sds %s %s"%(self.img, (process_dir+"/01b_"+os.path.basename(os.path.splitext(self.img)[0])[3:]+".tif")))
+ 
+        print("Process directory:", process_dir)
+        return(process_dir+"/01b_"+os.path.basename(os.path.splitext(self.img)[0])[3:])
+
+
+    def normalise(self, img):
+
+        """ Normalise thermal image and assign projection. """
+
+        img = img + "_4.tif"
+        outfile = os.path.dirname(os.path.dirname(img))+("/02_"+os.path.basename(img)[4:-6]+".tif")
+        o_img = gdal.Open(img)
+        arr_img = o_img.ReadAsArray()
+        shp, nx, ny = o_img.RasterCount, arr_img.shape[0], arr_img.shape[1]
+        outdataset = gdal.GetDriverByName("GTiff").Create(outfile, ny, nx, shp, gdal.GDT_Float32)
+        outdataset.SetGeoTransform(myd_adjust(img).extract_geometry())
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(self.epsg)
+        outdataset.SetProjection(srs.ExportToWkt())
+        outband = outdataset.GetRasterBand(1)
+        outband.SetDescription("Thermal")
+        outband.WriteArray(arr_img*0.01)
+        return(outfile)
 
 class amsr2_adjust:
-    def __init__(self, img, resample, epsg=4326):
+    def __init__(self, img, date, resample, epsg=4326):
         self.img = img
+        self.date = date
         self.resample = resample
         self.epsg = epsg
 
@@ -234,9 +269,9 @@ class amsr2_adjust:
 
         """ Pull the 'ice_conc' variable from the netCDF file and convert it to a tif. """
 
-        date = self.img.rsplit("-")[-2]
-        year, month, day = date[:-4], date[4:-2], date[6:]
-        outdir = os.path.join(os.path.abspath(os.path.join(os.path.dirname(self.img), "../../../02_sic")),year,month,day)
+        #date = self.img.rsplit("-")[-2]
+        #year, month, day = date[:-4], date[4:-2], date[6:]
+        outdir = os.path.join(os.path.abspath(os.path.join(os.path.dirname(self.img), "../../../02_sic")),self.date)
         if not os.path.isdir(outdir): os.makedirs(outdir)
         os.system("gdal_translate -q -ot Float32 NETCDF:%s:ice_conc %s"%(self.img, outdir+"/01a_"+os.path.basename(os.path.splitext(self.img)[0])[3:]+".tif"))
 
