@@ -13,6 +13,7 @@ from datetime import date, datetime, timedelta
 from data.acquire import acquire_toolkit as acq_tk
 from data.adjust import adjust_toolkit as adj_tk
 from data.fusion import fusion_toolkit as fus_tk
+from run import apit_toolkit as apit_tk
 
 
 class argument_receiver:
@@ -94,16 +95,15 @@ class argument_receiver:
                 # Pull all files from those tiles+date folders begining with "02" and ending with "tif"
                 files_list = [item for sublist in [glob.glob(self.data_directory+"02_data/MODIS/"+product+"/01_tiles/"+t+"/"+d+"/02*.tif") for t in tiles] for item in sublist]
                 mosaic = adj_tk.myd_adjust.mosaic(self.data_directory, files_list, self.product, d, self.aoi)
-                print(mosaic)
         elif all("SIC" in p for p in self.product):
             # SIC data extraction, projection, resampled (if specified) and then masked.
             adjust_dates = PF.adjust_date_formater()
             aoi = PF.amsr2_aoi_formater()
             for d in adjust_dates:
                 dir = (self.data_directory+"02_data/AMSR2/01_raw/"+d[:4]+"/"+d[5:-3]+"/")
-                for file in glob.glob(dir+f"ESACCI*{aoi}-{d.replace('/', '')}*.nc"):
+                for file in glob.glob(dir+f"ESACCI*{aoi}-{d.replace('/', '')}*.nc") + glob.glob(dir+f"ice_conc_{aoi.lower()}*{d.replace('/', '')}*.nc"):
                     print(f"Processing {d} AMSR-2 Sea ice concentration data...\n")
-                    AA = adj_tk.amsr2_adjust(file, self.resample)
+                    AA = adj_tk.amsr2_adjust(file, d, self.resample)
                     extract = AA.extract_from_netcdf()
                     rpjct = AA.reproject(extract)
                     if bool(self.resample) == True:
@@ -117,23 +117,22 @@ class argument_receiver:
     def fusion_parser(self):
 
         PF = parameter_formatting(self.aoi, self.product, self.start_date, self.end_date)
-        adjust_dates = PF.adjust_date_formater()
-        DF = fus_tk.data_fusion(self.data_directory, adjust_dates, self.product, self.aoi)
+        dates = PF.adjust_date_formater()
+        DF = fus_tk.data_fusion(self.data_directory, dates, self.product, self.aoi)
         DF.fusion()
         
+    
+    def run_parser(self):
+
+        PF = parameter_formatting(self.aoi, self.product, self.start_date, self.end_date)
+        # Organise dates.
+        dates = PF.adjust_date_formater()
+        AP = apit_tk.apit_preparation(self.data_directory, dates, self.product, self.aoi)
+        # Pull data that fits all criteria.
+        data = AP.data_collector()
+        AE = apit_tk.apit_execute(self.data_directory, dates, self.product, self.aoi, data)
+        APIT = AE.apit()
         sys.exit()
-
-
-
-        print("inputs, fusion")
-        print(self.process)
-        print(self.data_directory)
-        print(self.product)
-        print(self.aoi)
-        print(self.start_date)
-        print(self.end_date)
-        print(self.resample)
-        print(adjust_dates)
 
 class parameter_formatting:
     def __init__(self, aoi, product, start_date, end_date):
