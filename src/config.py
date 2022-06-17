@@ -76,10 +76,15 @@ class configuration_reader:
             if len(product) < 2: raise RuntimeError(f"'{process}' requires multiple products to fuse, please refine.")
             else: pass
             p_tk.argument_receiver(process, data_directory, product, aoi, start_date, end_date, resample).fusion_parser()
+        elif any("run" in p for p in process):
+            print("Parsing inputs to 'run' ... \n")
+            p_tk.argument_receiver(process, data_directory, product, aoi, start_date, end_date, resample).run_parser()
         ### Raise error for impossible combinations. ###
         elif any("acquire" in p for p in process) and any("fusion" in p for p in process):
             raise RuntimeError(f"'{process[0]} and {process[1]}' is not a possible combination.")
         elif any("adjust" in p for p in process) and any("fusion" in p for p in process):
+            raise RuntimeError(f"'{process[0]} and {process[1]}' is not a possible combination.")
+        elif any("fusion" in p for p in process) and any("run" in p for p in process):
             raise RuntimeError(f"'{process[0]} and {process[1]}' is not a possible combination.")
 
         '''
