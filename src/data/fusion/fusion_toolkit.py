@@ -7,6 +7,7 @@ Toolkit containing the Automated Polynya Identification Tool data-fusion steps.
 # Package loader # 
 import os, sys, glob, functools
 import gdal, gc
+import rioxarray as rxr
 
 
 class data_fusion:
@@ -25,30 +26,57 @@ class data_fusion:
             imagery = []
             for p in self.products:
                 dir = self.data_directory+"02_data/"
+                # Pull imagery from the products.
                 if p == "MYD09GA":
                     imagery.append(glob.glob(dir+f"MODIS/{p}_061/02_mosaic/{d}/02_*{self.aoi}.tif"))
                 elif p == "MYDTBGA":
                     imagery.append(glob.glob(dir+f"MODIS/{p}_006/02_mosaic/{d}/02_*{self.aoi}.tif"))
                 elif p == "SIC":
+                    # Filepath contains NH or SH based on aoi hemisphere.
                     if self.aoi=="arctic": hem = "NH"
                     elif self.aoi=="antarctica": hem = "SH"
-                    imagery.append(glob.glob(dir+f"AMSR2/02_sic/{d}/02_*{hem}*.tif"))
+                    imagery.append(glob.glob(dir+f"AMSR2/02_sic/{d}/02_*{hem}*.tif") + glob.glob(dir+f"AMSR2/02_sic/{d}/02_*{hem.lower()}*.tif"))
             imgs=functools.reduce(lambda x,y:x+y,(imagery))
 
-
-            ####################################################################################
-            ### Check resolution of all images and make sure they are the same resolution! ###
-            # function, takes all images, gdal.Open, rasterXsize, rasterYsize, make sure they're all the same?
-            ####################################################################################
-
+            # Make sure the amount of products to be fused matches the inputs.
             if len(imgs) != len(self.products):
                 raise RuntimeError(f"Based on entries, there is missing data from products for {d}. Please acquire and adjust missing data prior to re-trying fusion.")
             else:
-                dir = dir+f"fusion/{'_'.join(self.products)}/{d}/"
-                if not os.path.isdir(dir): os.makedirs(dir)
-                outfile = dir + f"02_{'_'.join(self.products)}_{''.join(d.split('/'))}_{self.aoi}.tif"
-                os.system("gdal_merge.py -o -q -of GTIFF -seperate -ot Float32 -o %s %s"%(outfile, " ".join(imgs)))
-                self.set_band_description(outfile, self.description_builder(self.products))
+                # Check CRS and resolution of the imagery, and make sure it matches.
+                CRS, RESX, RESY = [], [], []
+                for i in imgs:
+                    src = rxr.open_rasterio(i, masked=True)
+                    crs = src.rio.crs
+                    # Rounding is executed to 10 decimal points (the optical product has resolution is often the value just below recurring i.e. resample to 0.1, res = 0.09 recurring).
+                    resX, resY = round(src.rio.resolution()[0], 10), round(src.rio.resolution()[1], 10)
+                    CRS.append(crs)
+                    RESX.append(resX)
+                    RESY.append(resY)
+                    del src, crs, resX, resY
+                    gc.collect()
+
+                if not self.allEqual(CRS) and self.allEqual(RESX) and self.allEqual(RESY):
+                    raise RuntimeError(f"Based on entries, there is a different CRS or resolution for the entries for {d}. All resolutions must match, please adjust this data prior to re-trying fusion.")
+                else:
+                    dir = dir+f"fusion/{'_'.join(self.products)}/{d}/"
+                    if not os.path.isdir(dir): os.makedirs(dir)
+                    outfile = dir + f"02_{'_'.join(self.products)}_{''.join(d.split('/'))}_{self.aoi}.tif"
+                    os.system("gdal_merge.py -q -of GTIFF -seperate -ot Float32 -o %s %s"%(outfile, " ".join(imgs)))
+                    self.set_band_description(outfile, self.description_builder(self.products))
+    
+
+    def allEqual(self, iterable):
+        iterator = iter(iterable)
+        
+        try:
+            firstItem = next(iterator)
+        except StopIteration:
+            return True
+            
+        for x in iterator:
+            if x!=firstItem:
+                return False
+        return True
 
     @staticmethod
     def set_band_description(file, band_names):
