@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from getpass import getpass
 from netrc import netrc
 import requests
+import shutil
 from tqdm import tqdm
 
 # Toolkit loader # 
@@ -63,24 +64,19 @@ class acquire_modis:
 
             if self.product == "MYDTBGA":
                 ################# CHECK IF THIS IS REAL - IF TRUE DON'T DOWNLOAD #####################
-                print(self.data_directory+"02_data/MODIS/"+self.product+"_006/02_mosaic/"+str(date).replace(".", "/")+"02_"+self.product+"_006_"+str(date).replace(".", "")[:-1]+"_"+roi+".tif")
-                print(str(self.aoi))
-                ### also sort adjust process for this data ###
-                #sys.exit()
-
-
-                sys.exit()
-                for link in soup.select("a[href$='.hdf']"):
-                    hdfPath = (url+date+link.get("href"))
-                    h = hdfPath.rsplit("/", 1)[1].rsplit(".", 7)[2][1:3]
-                    v = hdfPath.rsplit("/", 1)[1].rsplit(".", 7)[2][4:]
-                    if int(h) >= hmin and int(h)<= hmax:
-                        if int(v) >= vmin and int(v) <= vmax:
-                            outdir = self.data_directory+"02_data/MODIS/"+self.product+"_006/01_tiles/"+"h"+h+"v"+v+"/"+str(date).replace(".", "/")
-                            if not os.path.isdir(outdir): os.makedirs(outdir)
-                            prod_lnk = ("%s\n"%hdfPath)
-                            outdirs.append(outdir)
-                            item_links.append(prod_lnk)
+                if not os.path.exists(self.data_directory+"02_data/MODIS/"+self.product+"_006/02_mosaic/"+str(date).replace(".", "/")+"02_"+self.product+"_006_"+str(date).replace(".", "")[:-1]+"_"+roi+".tif"):
+                    for link in soup.select("a[href$='.hdf']"):
+                        hdfPath = (url+date+link.get("href"))
+                        h = hdfPath.rsplit("/", 1)[1].rsplit(".", 7)[2][1:3]
+                        v = hdfPath.rsplit("/", 1)[1].rsplit(".", 7)[2][4:]
+                        if int(h) >= hmin and int(h)<= hmax:
+                            if int(v) >= vmin and int(v) <= vmax:
+                                outdir = self.data_directory+"02_data/MODIS/"+self.product+"_006/01_tiles/"+"h"+h+"v"+v+"/"+str(date).replace(".", "/")
+                                if not os.path.isdir(outdir): os.makedirs(outdir)
+                                prod_lnk = ("%s\n"%hdfPath)
+                                outdirs.append(outdir)
+                                item_links.append(prod_lnk)
+                else:continue
 
         return(item_links, outdirs)
 
@@ -174,13 +170,23 @@ class lpdaac:
                             os.remove(rename)
                             imgs_4_mosaic.append(rsampled)
                         elif resample == "False":
-                            print("Appending reprojected")
                             imgs_4_mosaic.append(rpjct)
                         else:pass
                     elif "MYDTBGA" in outfile:
-                        print("MYDTBGA processing to be set-up.")
-                        # extract, normalise, assign geometry and resample
-                        sys.exit()
+                        THERM_adj = adj_tk.mydtbga_adjust(outfile)
+                        extract = THERM_adj.extract()
+                        normalise = THERM_adj.normalise(extract)
+                        shutil.rmtree(os.path.split(extract)[0])
+                        if not resample == "False":
+                            rename = os.path.split(normalise)[0]+"/"+os.path.split(normalise)[1][:2]+"a"+os.path.split(normalise)[1][2:]
+                            os.rename(normalise, rename)
+                            xres, yres = resample[0], resample[1]
+                            rsampled = adj_tk.myd_adjust.resample(rename, xres, yres)
+                            os.remove(outfile)
+                            os.remove(rename)
+                            imgs_4_mosaic.append(rsampled)
+                        elif resample == "False":
+                            imgs_4_mosaic.append(normalise)
 
             else:continue
         return(imgs_4_mosaic)
