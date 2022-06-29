@@ -8,8 +8,10 @@ Toolkit containing the Automated Polynya Identification Tool run steps.
 import os, sys, glob, gc
 import functools, itertools, collections
 import numpy as np
-import rasterio
-from skimage.filters import threshold_otsu, threshold_minimum
+import numpy.ma as ma
+import gdal, rasterio
+from skimage.filters import threshold_otsu, threshold_minimum, sobel
+from skimage.morphology import binary_erosion, binary_dilation, remove_small_holes, remove_small_objects
 from tqdm import tqdm
 
 
@@ -48,7 +50,7 @@ class apit_preparation():
             for fp in glob.glob(self.data_directory+f"02_data/fusion/*"):
                 if all(p in os.path.split(fp)[1] for p in self.products):
                     filepath = fp+"/"
-            if filepath == None: raise RuntimeError("A fused product containing all inputted products does not exist. Consider processing this using the 'fusion' step.")
+            if filepath == None: raise RuntimeError(f"A fused product containing all inputted products does not exist. Consider processing this using the 'fusion' step.\nInputted products: {self.products}")
             if not os.path.isdir(filepath):
                 raise RuntimeError(f"The fused data you wish to implement does not exist, either put the products in the correct order or create them using 'fusion'. \n{filepath}")
 
@@ -119,14 +121,12 @@ class apit_execute():
 
         """ Read input image and pull required bands band on input products. """
 
+        products = dict([(p, []) for p in self.products])
+        indices = dict([(p, []) for p in self.products])
+        src = rasterio.open(img)
+        desc = list(src.descriptions)
+        src.close()
         if len(self.products) > 1:  
-            products = dict([(p, []) for p in self.products])
-            indices = dict([(p, []) for p in self.products])
-            arrays = dict([(p, []) for p in self.products])
-            src = rasterio.open(img)
-            profile = src.profile
-            desc = list(src.descriptions)
-            src.close()
             # Pull product band names.
             for p in self.products:
                 if p == "MYD09GA":
@@ -144,81 +144,133 @@ class apit_execute():
             for p in products.keys():
                 for v in products[p]:
                     indices[p].append(list(i+1 for i, s in enumerate(desc) if v in s)[0])
-            '''
-            band_out, array_out = [],[]
-            for pk, ik in zip(products.keys(), indices.keys()):
-                for p, i in zip(products[pk], indices[ik]):
-                    array_out.append(src.read(i+1))
-                    band_out.append(p)
-            '''
+
         elif len(self.products) == 1:
-            print("Setup code to run APIT with one product.")
-
-
-        return(products, indices, profile)   
+            if self.products[0] == "MYD09GA":
+                products[self.products[0]].append("None")
+                products[self.products[0]].append("None")
+                products[self.products[0]].append("None")
+                indices[self.products[0]].append(1)
+                indices[self.products[0]].append(2)
+                indices[self.products[0]].append(3)
+            elif self.products[0] == "MYDTBGA":
+                products[self.products[0]].append("None")
+                indices[self.products[0]].append(1)
+            elif self.products[0] == "SIC":
+                products[self.products[0]].append("None")
+                indices[self.products[0]].append(1)
+            elif self.products[0] == "SSS":
+                products[self.products[0]].append("None")
+                indices[self.products[0]].append(1)
+            
+        return(products, indices)   
 
     def expression_builder(self, img, bands_dict, idx_dict):
 
+        """ Build calculation expression ready for gdal_calc. """
 
-        #https://rasterio.readthedocs.io/en/latest/topics/calc.html
-
-        calculation = []
+        calculation, numbers, letters = [], [], []
         src = rasterio.open(img)
         for bd, ind in zip(bands_dict.keys(), idx_dict.keys()):
             if bd == "MYD09GA" and ind == "MYD09GA":
+                # Execute adaptive thresholding.
                 array = src.read(idx_dict[ind])
                 OT=optical_thresholding(array)
-                opt_threshold=OT.otsu()
-                calc = " ".join([f"(* (<= (read 1 {b}) {opt_threshold}) 1)" for b in idx_dict[ind]])
-                calculation.append(calc)
                 del array
+                opt_threshold=OT.otsu()
+                numb = idx_dict[ind]
+                let = [chr(ord("@")+x) for x in numb]
+                calc = "*".join([f"({b}<={opt_threshold})" for b in let])
+                numbers.append(numb)
+                letters.append(let)
+                calculation.append(calc)
                 gc.collect()
             elif bd == "MYDTBGA" and ind == "MYDTBGA":
-                calc = " ".join([f"(* (>= (read 1 {b}) 265) 1)" for b in idx_dict[ind]])
+                numb = idx_dict[ind]
+                let = [chr(ord("@")+x) for x in numb]
+                calc = "*".join([f"({b}>=265)" for b in let])
+                numbers.append(numb)
+                letters.append(let)
                 calculation.append(calc)
             elif bd == "SIC" and ind == "SIC":
-                ###### WHY ARE YOU NOT WORKING??? #####
-                ## SYNTAX FOR SIC BROKEN??? ###
-                #array = src.read(idx_dict[ind])
-                #array_masked = np.ma.masked_array(array, mask=(array == -9999))
-                #calc = " ".join([f"(* (>= (read 1 {b}) 0) 1) (* (<= (read 1 {b}) 60) 1) (where (== (read 1 {b}) -9999) 0)" for b in idx_dict[ind]])
-                #calc = " ".join([f"(* (<= (read 1 {b}) 60) 1)" for b in idx_dict[ind]])
-                calc = " ".join([f"(* (<= (read 1 {b}) 60) 1) (>= (read 1 {b}) 0) 1)" for b in idx_dict[ind]])
-                #calc = " ".join([f"(where (>= (read 1 {b}) 0) 1) (where (<= (read 1 {b}) 60) 1) (where (== (read 1 {b}) -9999) 0)" for b in idx_dict[ind]])
-                #masked = np.ma.masked_where(array == -9999, array)
-                #print(type(masked))
-                #print(calc)
-                #sys.exit()
+                numb = idx_dict[ind]
+                let = [chr(ord("@")+x) for x in numb]
+                calc = "*".join([f"({b}<=60)*({b}>=0)" for b in let])
+                numbers.append(numb)
+                letters.append(let)
                 calculation.append(calc)
+
             elif bd == "SSS" and ind == "SSS":
                 print("No SSS data implemented yet.")
         del src
         gc.collect()
+        numbers = functools.reduce(lambda x,y:x+y,(numbers))
+        letters = functools.reduce(lambda x,y:x+y,(letters))
+        band_inputs = " ".join([f"-{l} {img} --{l}_band={n}" for n, l in zip(numbers, letters)])
+        calculation = "*".join(calculation)
+        return(band_inputs, calculation)
+
+    def mask_ice_sheet_edges(self, o_input, img, index, outfile):
+
+        """ Apply edge detection for ice-sheet boundary detection for mask generation. """
         
-        return(" ".join(calculation))
-        #sys.exit()
+        src = rasterio.open(o_input)
+        sic = src.read(index)
+
+        mask_src = rasterio.open(img)
+        mask_arr = mask_src.read(1)
+        # Pull image profile for saving.
+        profile = mask_src.profile
+        # Extract ice-sheet edge. 1-sobel filter, 2-fill holes in ice-sheet data, 3-run another sobel filter for extracting ice-sheet edge.      
+        sobel_=binary_erosion(sobel(sic))
+        clean=remove_small_objects(remove_small_holes(sobel_, area_threshold=10000), min_size=500, connectivity=50)
+        is_edge=sobel(clean, mode="reflect")
+        # Dilate imagery - one dilation is one row of pixels. 
+        buffer=binary_dilation(is_edge) #10 km
+        buffer=binary_dilation(is_edge) #20 km
+        buffer=binary_dilation(is_edge) #30 km
+        buffer=binary_dilation(is_edge) #40 km
+        buffer=binary_dilation(is_edge) #50 km
+        # Mask the output
+        foutput = ma.array(mask_arr, mask=buffer, fill_value=0)
+        foutput = foutput.filled(fill_value=0)
+
+        with rasterio.open(outfile, 'w', **profile) as dst:
+            dst.write(foutput.astype(rasterio.float32), 1)
+        '''      
+        import matplotlib.pyplot as plt
+        fig, axs = plt.subplots(3, 1)
+        axs[0].imshow(mask_arr, interpolation='nearest')
+        axs[1].imshow(buffer, interpolation='nearest')
+        axs[2].imshow(foutput, interpolation='nearest')
+        plt.show()
+        sys.exit()
+        '''
 
     def apit(self):
-        process = self.process_organiser()
 
+        """ Execute the Automated Polynya Identification Tool. """
+
+        process = self.process_organiser()
+        outfiles = []
         print("Reading images ...\n")
         for img in tqdm(self.data):
-            bands_dict, idx_dict, profile = self.image_reader(img)
-            expression = self.expression_builder(img, bands_dict, idx_dict)
+            # Read from inputs the required bands for the tool execution.
+            bands_dict, idx_dict = self.image_reader(img)
+            # Build an expression to input in to gdal_calc.
+            band_inputs, expression = self.expression_builder(img, bands_dict, idx_dict)
             for d in self.dates:
                 if d in img:date = d
-            outdir = f"{self.data_directory}/03_APIT/{'_'.join(self.products)}/{date}/"
+            outdir = f"{self.data_directory}03_APIT/{'_'.join(self.products)}/{date}/"
             if not os.path.isdir(outdir): os.makedirs(outdir)
             outfile = f"{outdir}03_ESA_SOFRESH_APIT_{'_'.join(self.products)}_{date.replace('/','')}_{self.aoi}.tif"
-            #print(expression)
-            #print(img)
-            #print(outfile)
-            #sys.exit()
-            cmd = ('rio calc --overwrite "%s" %s %s'%(expression, img, outfile))
-            print(cmd)
-            os.system(cmd)
-            
-            sys.exit()
+            # Execute the APIT tool (threshold classification).
+            cmd = ("gdal_calc.py --quiet %s --outfile=%s --calc='%s' --overwrite"%(band_inputs, outfile, expression))
+            os.system("gdal_calc.py --quiet %s --outfile=%s --calc='%s' --overwrite"%(band_inputs, outfile, expression))
+            # If one of the input products is sea-ice concentration, mask out areas on the ice-sheet edge which may have been misidentified. 
+            if "SIC" in bands_dict.keys() and idx_dict.keys():
+                mask_edge = self.mask_ice_sheet_edges(img, outfile, idx_dict["SIC"][0], outfile)
+
 
 
     
